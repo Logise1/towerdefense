@@ -3,13 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V2</title>
-    <!-- Importamos una fuente "Gamer" de Google Fonts -->
+    <title>TowerDefense - Neon Zombie V3.2 Online</title>
+    <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURACIÓN FIREBASE DEL USUARIO ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
+            authDomain: "towerdefense-dfbfb.firebaseapp.com",
+            projectId: "towerdefense-dfbfb",
+            storageBucket: "towerdefense-dfbfb.firebasestorage.app",
+            messagingSenderId: "780250375670",
+            appId: "1:780250375670:web:ccded917e7b2316e5013d7",
+            measurementId: "G-4GW89G9D55"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // ID de la app para la ruta de la base de datos (Regla 1)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // --- GESTIÓN DE USUARIOS ---
+        window.AuthManager = {
+            user: null,
+            login: async (username, password) => {
+                const email = `${username}@email.com`;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    alert(`Bienvenido de nuevo, ${username}!`);
+                    Game.closeModal('auth-modal');
+                } catch (error) {
+                    if(error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                        // Intentar registro si falla login
+                        if(confirm("Usuario no encontrado o contraseña incorrecta. ¿Quieres crear una cuenta nueva con estos datos?")) {
+                            try {
+                                await createUserWithEmailAndPassword(auth, email, password);
+                                alert("Cuenta creada exitosamente!");
+                                Game.closeModal('auth-modal');
+                            } catch (regError) {
+                                alert("Error al registrar: " + regError.message);
+                            }
+                        }
+                    } else {
+                        alert("Error: " + error.message);
+                    }
+                }
+            },
+            logout: async () => {
+                await signOut(auth);
+                alert("Sesión cerrada.");
+            }
+        };
+
+        // Escuchar cambios de sesión
+        onAuthStateChanged(auth, (user) => {
+            window.AuthManager.user = user;
+            const btn = document.getElementById('btn-auth-main');
+            const lbl = document.getElementById('user-display');
+            if (user) {
+                const username = user.email.split('@')[0];
+                btn.innerText = "CERRAR SESIÓN";
+                btn.onclick = () => window.AuthManager.logout();
+                lbl.innerText = `JUGADOR: ${username.toUpperCase()}`;
+                lbl.style.display = 'block';
+            } else {
+                btn.innerText = "LOGIN / REGISTRO";
+                btn.onclick = () => Game.openModal('auth-modal');
+                lbl.style.display = 'none';
+            }
+        });
+
+        // --- GESTIÓN DE LEADERBOARD ---
+        window.ScoreManager = {
+            saveScore: async (wave, difficulty) => {
+                if (!window.AuthManager.user) return; // Solo guardar si está logueado
+                const username = window.AuthManager.user.email.split('@')[0];
+                
+                try {
+                    // Ruta estricta según Regla 1
+                    const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    await addDoc(scoresRef, {
+                        username: username,
+                        wave: wave,
+                        difficulty: difficulty, // Guardamos el valor numérico (0.05, 0.10, etc)
+                        timestamp: Date.now()
+                    });
+                    console.log("Puntaje guardado!");
+                } catch (e) {
+                    console.error("Error guardando score:", e);
+                }
+            },
+            getScores: async (difficultyVal) => {
+                try {
+                    const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
+                    // Regla 2: No usar querys complejas. Traer todo y filtrar en JS.
+                    const snapshot = await getDocs(scoresRef);
+                    let scores = [];
+                    snapshot.forEach(doc => scores.push(doc.data()));
+
+                    // Filtrar por dificultad y ordenar por oleada descendente
+                    // Usamos una pequeña tolerancia para comparar floats si fuera necesario, pero aquí string/number exacto vale
+                    const filtered = scores.filter(s => Math.abs(s.difficulty - difficultyVal) < 0.001);
+                    filtered.sort((a, b) => b.wave - a.wave);
+
+                    return filtered.slice(0, 10); // Top 10
+                } catch (e) {
+                    console.error("Error cargando leaderboard:", e);
+                    return [];
+                }
+            }
+        };
+    </script>
+
     <style>
         :root {
             --bg-dark: #0a0a12;
-            --panel-bg: rgba(20, 20, 35, 0.9);
+            --panel-bg: rgba(20, 20, 35, 0.95);
             --accent: #00ffcc;
             --accent-glow: rgba(0, 255, 204, 0.5);
             --gold: #ffcc00;
@@ -105,7 +222,7 @@
 
         /* UPGRADE PANEL */
         #upgrade-panel {
-            background: rgba(0,0,0,0.6); border: 1px solid var(--accent);
+            background: rgba(0,0,0,0.8); border: 1px solid var(--accent);
             padding: 15px; border-radius: 8px; display: none;
             flex-direction: column; gap: 10px; margin-top: auto;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -133,6 +250,8 @@
         .btn-ult { background: linear-gradient(180deg, #4a148c, #260a46); border-color: #7b1fa2; color: #e1bee7; box-shadow: 0 0 10px rgba(123, 31, 162, 0.4); }
         .btn-sell { background: linear-gradient(180deg, #b71c1c, #680f0f); border-color: #ef5350; margin-top: 5px; }
         .btn-start { background: linear-gradient(180deg, #01579b, #002f55); border-color: #0288d1; width: 100%; color: #81d4fa; letter-spacing: 1px;}
+        .btn-auth { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; position: absolute; top: 20px; right: 20px; z-index: 2001; }
+        .btn-auth:hover { background: var(--accent); color: #000; }
 
         /* SHOP */
         .shop-grid { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-right: 5px; }
@@ -200,6 +319,26 @@
         .btn-restart { padding: 15px 40px; font-size: 1.5rem; border: 2px solid #ff2a6d; color: #ff2a6d; background: transparent; cursor: pointer; text-transform: uppercase; font-weight: bold; }
         .btn-restart:hover { background: #ff2a6d; color: white; }
 
+        /* MODALS (Auth & Leaderboard) */
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #111; border: 1px solid var(--accent); border-radius: 8px;
+            padding: 20px; z-index: 3000; display: none; width: 400px; max-width: 90%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8); flex-direction: column; gap: 10px;
+        }
+        .modal-header { font-size: 1.5rem; color: white; margin-bottom: 10px; text-align: center; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .form-input { background: #222; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; width: 100%; font-family: 'Rajdhani'; font-size: 1rem; margin-bottom: 10px; }
+        .close-modal { position: absolute; top: 10px; right: 10px; color: #666; cursor: pointer; font-size: 1.2rem; }
+        .close-modal:hover { color: white; }
+
+        /* Leaderboard Table */
+        .lb-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .lb-table th { text-align: left; color: #888; font-size: 0.9rem; padding: 5px; border-bottom: 1px solid #333; }
+        .lb-table td { color: white; padding: 8px 5px; font-size: 1.1rem; border-bottom: 1px solid #222; }
+        .lb-table tr:nth-child(1) td { color: var(--gold); }
+        .lb-rank { width: 40px; text-align: center; font-weight: bold; }
+        .lb-wave { text-align: right; color: var(--accent); }
+
         /* DRAG GHOST */
         #drag-ghost {
             position: fixed; pointer-events: none; z-index: 999;
@@ -219,10 +358,14 @@
 
 <div id="game-wrapper">
     
+    <!-- AUTH BUTTON -->
+    <button id="btn-auth-main" class="btn btn-auth">LOGIN / REGISTRO</button>
+    <div id="user-display" style="position: absolute; top: 20px; left: 20px; color: var(--text-main); font-weight: bold; z-index: 2001; display: none;"></div>
+
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">SELECCIONA NIVEL DE AMENAZA</div>
+        <div class="title-big">NEON DEFENSE V3.2</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">ONLINE EDITION</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -230,6 +373,8 @@
             <button class="btn-diff diff-hard" onclick="Game.start(0.15)">DIFÍCIL (+15%)</button>
             <button class="btn-diff diff-imp" onclick="Game.start(0.20)">IMPOSIBLE (+20%)</button>
         </div>
+
+        <button class="btn" style="margin-top: 30px; width: 200px; border-color: var(--accent); color: var(--accent);" onclick="Game.openLeaderboard()">VER RANKING GLOBAL</button>
     </div>
 
     <!-- LEFT SIDEBAR -->
@@ -271,6 +416,7 @@
         <div id="game-over-screen" class="hidden">
             <div class="title-big" style="font-size: 3.5rem; color:#ff2a6d;">GAME OVER</div>
             <p id="score-text" style="color:white; margin-bottom:30px; font-size:1.5rem; letter-spacing: 1px;"></p>
+            <div id="save-msg" style="color: var(--accent); margin-bottom: 10px; height: 20px;"></div>
             <button class="btn-restart" onclick="Game.reset()">REINICIAR</button>
         </div>
     </div>
@@ -287,6 +433,30 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- MODALS -->
+<div id="auth-modal" class="modal">
+    <span class="close-modal" onclick="Game.closeModal('auth-modal')">×</span>
+    <div class="modal-header">ACCESO</div>
+    <input type="text" id="auth-user" class="form-input" placeholder="Nombre de usuario (ej: Player1)">
+    <input type="password" id="auth-pass" class="form-input" placeholder="Contraseña">
+    <button class="btn btn-start" onclick="Game.submitAuth()">ENTRAR / REGISTRAR</button>
+    <div style="font-size: 0.8rem; color: #666; text-align: center; margin-top: 10px;">
+        Si el usuario no existe, se intentará crear una cuenta nueva.
+    </div>
+</div>
+
+<div id="lb-modal" class="modal" style="width: 500px;">
+    <span class="close-modal" onclick="Game.closeModal('lb-modal')">×</span>
+    <div class="modal-header">RANKING GLOBAL</div>
+    <div style="display: flex; gap: 5px; justify-content: center; margin-bottom: 10px;">
+        <button class="btn" style="padding: 5px 10px; font-size: 0.8rem; border-color:#00e676" onclick="Game.loadLeaderboard(0.05)">FÁCIL</button>
+        <button class="btn" style="padding: 5px 10px; font-size: 0.8rem; border-color:#ffea00" onclick="Game.loadLeaderboard(0.10)">MEDIO</button>
+        <button class="btn" style="padding: 5px 10px; font-size: 0.8rem; border-color:#ff3d00" onclick="Game.loadLeaderboard(0.15)">DIFÍCIL</button>
+        <button class="btn" style="padding: 5px 10px; font-size: 0.8rem; border-color:#d500f9" onclick="Game.loadLeaderboard(0.20)">IMPOSIBLE</button>
+    </div>
+    <div id="lb-content" style="min-height: 200px;">Cargando...</div>
 </div>
 
 <div id="drag-ghost"></div>
@@ -332,23 +502,126 @@ const PALETTE = {
 };
 
 const TOWER_DATA = {
-    // --- TIERS BÁSICOS (Low Cost) ---
-    cannon: { name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, cost: 60, dmg: 12, range: 3*TILE, rate: 55, desc: "Daño directo básico.", upgrades: [{cost:40,text:"+5 Daño",apply:(t)=>t.dmg+=5},{cost:60,text:"+10 Daño",apply:(t)=>t.dmg+=10},{cost:100,text:"+Alcance",apply:(t)=>{t.dmg+=15;t.range+=0.5*TILE}},{cost:200,text:"ULTIMATE: Explosivo",apply:(t)=>{t.isUlt=true;t.splash=2*TILE;t.dmg+=50}}] },
-    bow: { name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, cost: 90, dmg: 7, range: 4*TILE, rate: 25, desc: "Disparo veloz.", upgrades: [{cost:50,text:"+Velocidad",apply:(t)=>t.rate=20},{cost:70,text:"+2 Daño",apply:(t)=>{t.dmg+=2;t.rate=18}},{cost:120,text:"Perforante",apply:(t)=>t.pierce=2},{cost:250,text:"ULTIMATE: Multi-Shot",apply:(t)=>{t.isUlt=true;t.multiShot=3}}] },
+    // --- TIERS BÁSICOS ---
+    cannon: { 
+        name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, 
+        cost: 60, dmg: 12, range: 3*TILE, rate: 45, // Fast
+        desc: "Daño directo básico.", 
+        upgrades: [
+            {cost:40, text:"+5 Daño", apply:(t)=>t.dmg+=5},
+            {cost:60, text:"+10 Daño", apply:(t)=>t.dmg+=10},
+            {cost:80, text:"+Rango y Daño", apply:(t)=>{t.dmg+=10; t.range+=1*TILE}},
+            {cost:250, text:"ULTIMATE: Explosivo", apply:(t)=>{t.isUlt=true; t.splash=2*TILE;}} // Splash en impacto
+        ] 
+    },
+    bow: { 
+        name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, 
+        cost: 120, dmg: 6, range: 4*TILE, rate: 20, // BUFF: DMG 5->6
+        critChance: 0.1, critMult: 2, // 10% chance x2 dmg
+        desc: "Velocidad y Críticos.", 
+        upgrades: [
+            {cost:80, text:"+20% Velocidad", apply:(t)=>t.rate=Math.floor(t.rate*0.8)},
+            {cost:100, text:"+2 Daño", apply:(t)=>t.dmg+=2},
+            {cost:150, text:"Perforante", apply:(t)=>t.pierce=2},
+            {cost:400, text:"ULTIMATE: Triple Shot", apply:(t)=>{t.isUlt=true; t.multiShot=3;}} // Dispara 3 flechas
+        ] 
+    },
     
-    // --- TIERS MEDIOS (Utility/Area) ---
-    ice: { name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, cost: 150, dmg: 6, range: 3*TILE, rate: 50, slow: 0.5, slowDur: 120, desc: "Ralentiza enemigos.", upgrades: [{cost:80,text:"+Duración",apply:(t)=>t.slowDur+=40},{cost:120,text:"+1 Rango",apply:(t)=>t.range+=1*TILE},{cost:180,text:"+Fuerza Slow",apply:(t)=>{t.slow=0.3;t.rate-=5}},{cost:300,text:"ULTIMATE: Zero Absoluto",apply:(t)=>{t.isUlt=true;t.freeze=true}}] },
-    mortar: { name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, cost: 220, dmg: 25, range: 5*TILE, rate: 80, splash: 2.2*TILE, desc: "Área masiva lenta.", upgrades: [{cost:100,text:"+Área",apply:(t)=>t.splash+=1*TILE},{cost:150,text:"+20 Daño",apply:(t)=>t.dmg+=20},{cost:250,text:"+Velocidad",apply:(t)=>t.rate=60},{cost:450,text:"ULTIMATE: Nuke",apply:(t)=>{t.isUlt=true;t.splash=3.5*TILE;t.dmg+=80;t.projectileSpeed=0.08}}] },
-    electro: { name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, cost: 350, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, desc: "Cadena eléctrica.", upgrades: [{cost:150,text:"+1 Salto",apply:(t)=>t.chain+=1},{cost:200,text:"+8 Daño",apply:(t)=>t.dmg+=8},{cost:300,text:"+3 Saltos",apply:(t)=>{t.chain+=3;t.rate-=5}},{cost:600,text:"ULTIMATE: Tormenta",apply:(t)=>{t.isUlt=true;t.chain=12;t.dmg+=20}}] },
+    // --- TIERS CONTROL / AREA ---
+    ice: { 
+        name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, 
+        cost: 110, dmg: 6, range: 3*TILE, rate: 45, 
+        slow: 0.6, slowDur: 120, // Reduce velocidad AL 60% (es decir un 40% slow)
+        desc: "Control de masas.", 
+        upgrades: [
+            {cost:100, text:"+2s Duración", apply:(t)=>t.slowDur+=120},
+            {cost:150, text:"+1 Rango", apply:(t)=>t.range+=1*TILE},
+            {cost:180, text:"Slow 70%", apply:(t)=>t.slow=0.3}, // BUFF: 60% -> 70% Slow (Factor 0.3)
+            {cost:350, text:"ULTIMATE: Zero Absoluto", apply:(t)=>{t.isUlt=true; t.freeze=true;}} // Congela
+        ] 
+    },
+    mortar: { 
+        name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, 
+        cost: 200, dmg: 25, range: 5*TILE, rate: 90, splash: 2*TILE, 
+        desc: "Área masiva lenta.", 
+        upgrades: [
+            {cost:120, text:"+Área", apply:(t)=>t.splash+=1*TILE},
+            {cost:180, text:"+20 Daño", apply:(t)=>t.dmg+=20},
+            {cost:200, text:"Recarga -20%", apply:(t)=>t.rate=Math.floor(t.rate*0.8)},
+            {cost:650, text:"ULTIMATE: Nuke", apply:(t)=>{t.isUlt=true; t.splash+=2*TILE; t.dmg+=200;}} 
+        ] 
+    },
+    electro: { 
+        name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, 
+        cost: 220, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, 
+        desc: "Rebotes múltiples.", 
+        upgrades: [
+            {cost:150, text:"+1 Salto", apply:(t)=>t.chain+=1},
+            {cost:200, text:"+8 Daño", apply:(t)=>t.dmg+=8},
+            {cost:300, text:"+2 Saltos", apply:(t)=>{t.chain+=2;}},
+            {cost:700, text:"ULTIMATE: Tormenta", apply:(t)=>{t.isUlt=true; t.chain=8; t.dmg=Math.floor(t.dmg*1.25);}} // NERF: 12 -> 8 Saltos
+        ] 
+    },
     
-    // --- TIERS AVANZADOS (High DPS/Special) ---
-    laser: { name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, cost: 550, dmg: 2, range: 4*TILE, rate: 4, desc: "Rayo continuo rápido.", upgrades: [{cost:250,text:"+Daño",apply:(t)=>t.dmg+=2},{cost:350,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:500,text:"Quemadura",apply:(t)=>t.burn=true},{cost:800,text:"ULTIMATE: Disintegrator",apply:(t)=>{t.isUlt=true;t.dmg+=4;t.rate=2}}] },
-    sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, cost: 750, dmg: 400, range: 9*TILE, rate: 100, desc: "Francotirador letal.", upgrades: [{cost:300,text:"+100 Daño",apply:(t)=>t.dmg+=100},{cost:450,text:"Perforante",apply:(t)=>t.pierce=5},{cost:600,text:"Recarga Rápida",apply:(t)=>t.rate=70},{cost:1200,text:"ULTIMATE: One-Shot",apply:(t)=>{t.isUlt=true;t.dmg+=800;t.pierce+=10}}] },
-    minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 1100, dmg: 24, range: 4*TILE, rate: 4, desc: "Lluvia de plomo.", upgrades: [{cost:400,text:"+Daño",apply:(t)=>t.dmg+=10},{cost:600,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:800,text:"Sin Recoil",apply:(t)=>t.accuracy=true},{cost:1500,text:"ULTIMATE: Bullet Hell",apply:(t)=>{t.isUlt=true;t.multiShot=3;t.dmg+=15}}] },
+    // --- TIERS AVANZADOS ---
+    laser: { 
+        name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, 
+        cost: 180, dmg: 3, range: 4*TILE, rate: 4, // 15 disparos/seg (4 frames) -> 45 DPS
+        desc: "Daño continuo.", 
+        upgrades: [
+            {cost:200, text:"+1 Daño Base", apply:(t)=>t.dmg+=1},
+            {cost:250, text:"+1 Rango", apply:(t)=>t.range+=TILE},
+            {cost:300, text:"Quemadura", apply:(t)=>t.burn=true},
+            {cost:650, text:"ULTIMATE: Disintegrator", apply:(t)=>{t.isUlt=true; t.rate=3; t.ignoreArmor=true;}} // Más rápido y true damage
+        ] 
+    },
+    sniper: { 
+        name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, 
+        cost: 450, dmg: 300, range: 9*TILE, rate: 150, // Lento
+        desc: "Anti-Tanque.", 
+        upgrades: [
+            {cost:250, text:"+100 Daño", apply:(t)=>t.dmg+=100},
+            {cost:400, text:"Perforante", apply:(t)=>t.pierce=3}, // Atraviesa
+            {cost:500, text:"Recarga -25%", apply:(t)=>t.rate=Math.floor(t.rate*0.75)},
+            {cost:1500, text:"ULTIMATE: One-Shot", apply:(t)=>{t.isUlt=true; t.dmg+=600; t.pierce=8;}} 
+        ] 
+    },
+    minigun: { 
+        name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, 
+        cost: 400, dmg: 16, range: 4*TILE, rate: 4, // NERF: 3 -> 4 frames (15 disparos/s)
+        desc: "Lluvia de plomo.", 
+        upgrades: [
+            {cost:600, text:"+4 Daño", apply:(t)=>t.dmg+=4},
+            {cost:900, text:"+1 Rango", apply:(t)=>t.range+=TILE},
+            {cost:1200, text:"Precisión", apply:(t)=>{t.accuracy=true; t.dmg=Math.floor(t.dmg*1.1);}},
+            {cost:3000, text:"ULTIMATE: Bullet Hell", apply:(t)=>{t.isUlt=true; t.multiShot=2;}} // Doble barril
+        ] 
+    },
     
-    // --- TIERS LEGENDARIOS (Endgame) ---
-    plasma: { name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, cost: 2500, dmg: 60, range: 3*TILE, rate: 35, splash: 3*TILE, desc: "Sol en miniatura.", upgrades: [{cost:1000,text:"+Área",apply:(t)=>t.splash+=TILE},{cost:1500,text:"+Daño",apply:(t)=>t.dmg+=50},{cost:2000,text:"Napalm",apply:(t)=>t.burn=true},{cost:4000,text:"ULTIMATE: Supernova",apply:(t)=>{t.isUlt=true;t.splash=6*TILE;t.dmg+=200}}] },
-    titan: { name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, cost: 5000, dmg: 800, range: 6*TILE, rate: 150, splash: 4*TILE, desc: "Destrucción total.", upgrades: [{cost:2500,text:"+Daño Divino",apply:(t)=>t.dmg+=800},{cost:3500,text:"Rango Global",apply:(t)=>t.range=25*TILE},{cost:5000,text:"Recarga",apply:(t)=>t.rate=80},{cost:10000,text:"ULTIMATE: APOCALIPSIS",apply:(t)=>{t.isUlt=true;t.dmg=8000;t.splash=12*TILE}}] }
+    // --- TIERS LEGENDARIOS ---
+    plasma: { 
+        name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, 
+        cost: 350, dmg: 7, range: 3.5*TILE, rate: 6, splash: 1.65*TILE, // BUFF: Dmg 5->7, Range 3->3.5, Splash +10%
+        desc: "Área permanente.", 
+        upgrades: [
+            {cost:900, text:"+Área 20%", apply:(t)=>t.splash*=1.2},
+            {cost:1000, text:"+30 Daño (DPS)", apply:(t)=>t.dmg+=3}, // +3 daño x 10 disparos = +30 DPS
+            {cost:1200, text:"Napalm", apply:(t)=>t.burn=true},
+            {cost:3000, text:"ULTIMATE: Supernova", apply:(t)=>{t.isUlt=true; t.splash*=1.5; t.dmg=Math.floor(t.dmg*2.25);}} // BUFF: x2 -> x2.25
+        ] 
+    },
+    titan: { 
+        name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, 
+        cost: 2000, dmg: 600, range: 7*TILE, rate: 120, splash: 3*TILE, 
+        critChance: 0.5, critMult: 3, // 50% crit x3
+        desc: "La última defensa.", 
+        upgrades: [
+            {cost:2500, text:"+600 Daño", apply:(t)=>t.dmg+=600},
+            {cost:3500, text:"Rango Global", apply:(t)=>t.range=30*TILE},
+            {cost:5000, text:"Recarga -30%", apply:(t)=>t.rate=Math.floor(t.rate*0.7)},
+            {cost:15000, text:"ULTIMATE: APOCALIPSIS", apply:(t)=>{t.isUlt=true; t.dmg=6000; t.splash=10*TILE;}} 
+        ] 
+    }
 };
 
 const ENEMY_DATA = {
@@ -356,7 +629,7 @@ const ENEMY_DATA = {
     fast: { hp: 10, speed: 3.2, money: 8, color: '#ffea00', radius: 8, glow: 'rgba(255,234,0,0.5)' },
     tank: { hp: 60, speed: 0.8, money: 25, color: '#ff3d00', radius: 14, glow: 'rgba(255,61,0,0.5)' },
     special: { hp: 25, speed: 1.6, money: 15, color: '#d500f9', radius: 11, immune: true, glow: 'rgba(213,0,249,0.5)' },
-    boss: { hp: 300, speed: 0.5, money: 150, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' }
+    boss: { hp: 400, speed: 0.5, money: 200, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' }
 };
 
 const AudioEngine = {
@@ -410,25 +683,24 @@ class Enemy extends Entity {
         this.offsetY = (Math.random() - 0.5) * 10;
         this.offsetX = (Math.random() - 0.5) * 10;
         
-        // --- NERF CRYO ---
-        // Contador de cuánto tiempo total ha estado congelado este enemigo
         this.totalFrozen = 0; 
     }
     update() {
-        // --- LOGICA DE CONGELACIÓN CON LIMITE ---
         if(this.freezeTimer > 0) { 
-            this.totalFrozen++; // Aumentar contador de tiempo congelado
-            // Si supera 5 segundos (60 frames * 5), se rompe el hielo
-            if (this.totalFrozen >= 300) { 
+            this.totalFrozen++; 
+            // NERF: Si supera 2 segundos (60 frames * 2), se rompe el hielo y gana inmunidad
+            if (this.totalFrozen >= 120) { 
                 this.freezeTimer = 0; 
             } else {
-                // Si no ha superado el límite, se queda quieto y sale de la función
                 this.freezeTimer--; 
                 return; 
             }
         }
 
-        if(this.slowTimer > 0) { this.slowTimer--; this.speed = this.speedBase * (this.slowFactor || 0.5); } 
+        if(this.slowTimer > 0) { 
+            this.slowTimer--; 
+            this.speed = this.speedBase * (this.slowFactor || 0.6); 
+        } 
         else this.speed = this.speedBase;
 
         const target = Game.waypoints[this.idx + 1];
@@ -449,7 +721,7 @@ class Enemy extends Entity {
         }
         if(this.flash > 0) this.flash--;
     }
-    hit(dmg) { 
+    hit(dmg, isTrueDamage) { 
         this.hp -= dmg; 
         this.flash = 4; 
         AudioEngine.play('hit');
@@ -460,17 +732,31 @@ class Enemy extends Entity {
         if(this.immune) return;
         if(effect === 'slow') { this.slowTimer = duration; this.slowFactor = strength; }
         if(effect === 'freeze') { 
-            // Si ya ha cumplido su condena de 5s, no se vuelve a congelar
-            if (this.totalFrozen >= 300) return;
+            if (this.totalFrozen >= 120) return; // 2s Cap
             this.freezeTimer = duration; 
+        }
+        if(effect === 'burn') {
+            if(!this.burnTimer) {
+                this.burnTimer = duration;
+                this.burnDmg = 0;
+                // Simple burn tick logic
+                const burnInt = setInterval(() => {
+                    if(this.dead) clearInterval(burnInt);
+                    if(this.burnTimer > 0) {
+                        this.hp -= 2; // Quemadura standard
+                        this.burnTimer -= 10;
+                    } else clearInterval(burnInt);
+                }, 200);
+            } else {
+                this.burnTimer = duration;
+            }
         }
     }
     draw(ctx) {
         ctx.save(); 
         ctx.translate(this.x + this.offsetX * 0.5, this.y + this.offsetY * 0.5);
         
-        // Efecto visual de inmunidad al frío
-        if (this.totalFrozen >= 300 && Game.frames % 20 < 10) {
+        if (this.totalFrozen >= 120 && Game.frames % 20 < 10) {
              ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
         } else {
              ctx.shadowBlur = 10; ctx.shadowColor = this.glow;
@@ -504,8 +790,13 @@ class Tower extends Entity {
         this.name = data.name; this.color = data.color; this.dmg = data.dmg;
         this.range = data.range; this.rate = data.rate; this.spent = data.cost;
         this.level = 1; this.cooldown = 0; this.angle = -Math.PI/2; this.recoil = 0;
-        this.pierce = 0; this.splash = data.splash||0; this.chain = 0; this.multiShot = 0; this.isUlt = false;
-        if(type === 'support') this.buff = data.buff;
+        this.pierce = 0; this.splash = data.splash||0; this.chain = data.chain||0; 
+        this.multiShot = 0; this.isUlt = false;
+        
+        this.critChance = data.critChance || 0;
+        this.critMult = data.critMult || 1;
+        this.slow = data.slow || 0;
+        this.slowDur = data.slowDur || 0;
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
@@ -517,18 +808,7 @@ class Tower extends Entity {
         if(this.recoil > 0) this.recoil *= 0.8;
         if(this.cooldown > 0) this.cooldown--;
         
-        if(this.key === 'support') {
-            Game.towers.forEach(t => { 
-                if(t !== this && Math.hypot(t.x-this.x, t.y-this.y) <= this.range) { 
-                    t.buffed = true; t.buffVal = this.buff; 
-                } 
-            });
-            if(Game.frames % 60 === 0) Game.addJuice('ring', this.x, this.y, this.range, 'rgba(255,255,255,0.05)');
-            return;
-        }
-
         let effectiveRate = this.rate;
-        if(this.buffed) { effectiveRate /= (1 + (this.buffVal||0)); this.buffed = false; }
         
         if(this.cooldown <= 0) {
             const target = this.findTarget();
@@ -536,7 +816,7 @@ class Tower extends Entity {
                 const targetAngle = Math.atan2(target.y-this.y, target.x-this.x);
                 this.angle = targetAngle;
                 this.shoot(target); 
-                this.cooldown = Math.max(3, effectiveRate); 
+                this.cooldown = Math.max(2, effectiveRate); 
                 this.recoil = 6;
             }
         }
@@ -557,11 +837,14 @@ class Tower extends Entity {
     shoot(target) {
         AudioEngine.play('shoot');
         if(this.key === 'electro') this.doChainLightning(target);
+        else if (this.key === 'minigun' && this.multiShot > 0) {
+             for(let i=0; i<this.multiShot; i++) {
+                 // Disparo con pequeño offset aleatorio
+                 Game.projectiles.push(new Projectile(this, target, this.angle + (Math.random()-0.5)*0.2));
+             }
+        }
         else if(this.key === 'bow' && this.multiShot > 0) { 
             for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, target, this.angle + i*0.25)); 
-        }
-        else if (this.key === 'minigun' && this.multiShot > 0) {
-             for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, target, this.angle + i*0.15));
         }
         else Game.projectiles.push(new Projectile(this, target, this.angle));
     }
@@ -569,9 +852,9 @@ class Tower extends Entity {
         let visited = [target], curr = target, damage = this.dmg;
         Game.damageEnemy(target, damage); 
         Game.addJuice('bolt', this.x, this.y, target.x, target.y, this.color);
-        let jumps = this.chain + (TOWER_DATA[this.key].chain || 0);
+        let jumps = this.chain;
         for(let i=0; i<jumps; i++) {
-            let next = null, minDist = 150;
+            let next = null, minDist = 180;
             for(let e of Game.enemies) { 
                 if(!visited.includes(e)) { 
                     let d = Math.hypot(e.x-curr.x, e.y-curr.y); 
@@ -607,6 +890,7 @@ class Tower extends Entity {
         else if (this.key === 'minigun') {
             ctx.fillRect(-10,-10,20,20);
             ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3);
+            if(this.multiShot > 0) ctx.fillRect(5, -9, 15, 3); // Visual para doble cañon
         }
         else if (this.key === 'laser') {
             ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-5,8); ctx.lineTo(-5,-8); ctx.fill();
@@ -616,11 +900,6 @@ class Tower extends Entity {
             ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
             ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
             ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
-        }
-        else if (this.key === 'support') { 
-            ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.strokeStyle = this.color; ctx.lineWidth=3; ctx.stroke(); 
-            ctx.rotate(Game.frames * 0.1);
-            ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,12,0,0.5); ctx.lineTo(0,0); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill();
         }
         else { 
             ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); 
@@ -639,9 +918,15 @@ class Projectile extends Entity {
         if(tower.key === 'laser') this.speed = 20;
         this.vx = Math.cos(angle)*this.speed; this.vy = Math.sin(angle)*this.speed;
         this.trail = [];
-        if(tower.key === 'mortar' || tower.key === 'titan' || tower.key === 'plasma') {
+        if(tower.key === 'mortar' || tower.key === 'titan') {
             this.isArc = true; this.progress = 0; this.startX = this.x; this.startY = this.y;
-            this.speed = 0.02 + (tower.projectileSpeed || 0);
+            this.speed = 0.02;
+            if(tower.key === 'titan' && tower.isUlt) this.speed = 0.04;
+        }
+        // Plasma behaves like a fast projectile now to simulate 50/s continuous fire
+        if(tower.key === 'plasma') {
+            this.speed = 15;
+            this.vx = Math.cos(angle)*this.speed; this.vy = Math.sin(angle)*this.speed;
         }
     }
     update() {
@@ -662,7 +947,11 @@ class Projectile extends Entity {
             for(let e of Game.enemies) {
                 if(Math.hypot(e.x-this.x, e.y-this.y) < e.radius+8) {
                     if(this.tower.splash > 0) this.hitArea(this.x, this.y); else this.hitSingle(e);
-                    if(this.tower.pierce > 0) { if(!this.pierceCount) this.pierceCount = this.tower.pierce; this.pierceCount--; if(this.pierceCount <= 0) this.dead = true; } else { this.dead = true; }
+                    if(this.tower.pierce > 0) { 
+                        if(!this.pierceCount) this.pierceCount = this.tower.pierce; 
+                        this.pierceCount--; 
+                        if(this.pierceCount <= 0) this.dead = true; 
+                    } else { this.dead = true; }
                     break;
                 }
             }
@@ -670,10 +959,22 @@ class Projectile extends Entity {
     }
     hitSingle(e) {
         let dmg = this.tower.dmg; 
-        if(this.tower.key==='bow' && Math.random()<0.25) { dmg*=2; Game.addJuice('text', e.x, e.y-20, 'CRIT!', '#ffea00'); }
+        
+        // Crit Logic
+        if(this.tower.critChance > 0 && Math.random() < this.tower.critChance) {
+            dmg *= this.tower.critMult;
+            Game.addJuice('text', e.x, e.y-20, 'CRIT!', '#ffea00');
+        }
+
         Game.damageEnemy(e, dmg);
-        if(this.tower.key==='ice') { if(this.tower.freeze) e.applyStatus('freeze', 60); else e.applyStatus('slow', this.tower.slowDur, this.tower.slow); }
-        if(this.tower.key==='laser' && this.tower.burn) e.applyStatus('burn', 60, 2);
+        
+        // Status Effects
+        if(this.tower.key==='ice') { 
+            if(this.tower.freeze) e.applyStatus('freeze', 60); 
+            else e.applyStatus('slow', this.tower.slowDur, this.tower.slow); 
+        }
+        if(this.tower.burn) e.applyStatus('burn', 120, 2);
+        
         Game.addJuice('particle', this.x, this.y, 4, this.tower.color);
     }
     hitArea(x, y) {
@@ -681,11 +982,12 @@ class Projectile extends Entity {
         for(let e of Game.enemies) {
             if(Math.hypot(e.x-x, e.y-y) <= this.tower.splash) {
                 Game.damageEnemy(e, this.tower.dmg);
-                // SPLASH APPLIES EFFECTS NOW
+                // SPLASH APPLIES EFFECTS
                 if(this.tower.key==='ice') { 
                     if(this.tower.freeze) e.applyStatus('freeze', 60); 
                     else e.applyStatus('slow', this.tower.slowDur, this.tower.slow); 
                 }
+                if(this.tower.burn) e.applyStatus('burn', 120, 2);
             }
         }
     }
@@ -715,15 +1017,15 @@ const Game = {
 
     start(diff) {
         this.difficulty = diff;
-        if(diff >= 0.20) this.lives = 1;       
-        else if(diff >= 0.15) this.lives = 3;  
+        if(diff >= 0.20) this.lives = 1;        
+        else if(diff >= 0.15) this.lives = 3;   
         else if(diff >= 0.10) this.lives = 10; 
-        else this.lives = 20;                  
+        else this.lives = 20;                   
 
         document.getElementById('global-overlay').classList.add('hidden');
         document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
         this.playing = true;
-        this.money = 150; 
+        this.money = 250; // Starting money slightly increased to allow early towers
         this.wave = 1;
         this.enemies = []; this.towers = []; this.projectiles = []; this.particles = [];
         this.waveQueue = [];
@@ -736,6 +1038,7 @@ const Game = {
         document.querySelectorAll('.sidebar').forEach(el => el.classList.add('hidden'));
         this.playing = false;
         this.towers = [];
+        document.getElementById('save-msg').innerText = "";
     },
 
     loop() {
@@ -828,6 +1131,13 @@ const Game = {
             this.playing = false; 
             document.getElementById('game-over-screen').classList.remove('hidden'); 
             document.getElementById('score-text').innerText = "OLEADAS RESISTIDAS: " + (this.wave - 1); 
+            // GUARDAR SCORE
+            if(window.AuthManager.user) {
+                window.ScoreManager.saveScore(this.wave - 1, this.difficulty);
+                document.getElementById('save-msg').innerText = "PUNTUACIÓN GUARDADA EN RANKING";
+            } else {
+                document.getElementById('save-msg').innerText = "INICIA SESIÓN PARA GUARDAR TU SCORE";
+            }
         } 
     },
     nextWave() {
@@ -885,7 +1195,7 @@ const Game = {
         document.getElementById('upg-level').innerText = "NIVEL " + t.level; document.getElementById('upg-name').innerText = t.name;
         document.getElementById('upg-desc').innerHTML = `<div style="display:flex; justify-content:space-between"><span>Daño:</span> <span style="color:#fff">${t.dmg.toFixed(0)}</span></div><div style="display:flex; justify-content:space-between"><span>Velocidad:</span> <span style="color:#fff">${(60/t.rate).toFixed(1)}/s</span></div><div style="display:flex; justify-content:space-between"><span>Rango:</span> <span style="color:#fff">${(t.range/TILE).toFixed(1)}</span></div>`;
         const btn = document.getElementById('btn-upgrade');
-        if(nextUpg) { btn.innerHTML = `${t.level===3?'★ MAXIMIZAR':'MEJORAR'}<br><span style="font-size:0.7em; opacity:0.8">${nextUpg.text}</span><br><span style="color:var(--gold)">$${nextUpg.cost}</span>`; btn.disabled = this.money < nextUpg.cost; btn.className = t.level===3?"btn btn-ult":"btn btn-upg"; } else { btn.innerHTML = "NIVEL MÁXIMO"; btn.disabled = true; btn.className = "btn"; }
+        if(nextUpg) { btn.innerHTML = `${t.level===4?'★ MAXIMIZAR':'MEJORAR'}<br><span style="font-size:0.7em; opacity:0.8">${nextUpg.text}</span><br><span style="color:var(--gold)">$${nextUpg.cost}</span>`; btn.disabled = this.money < nextUpg.cost; btn.className = t.level===4?"btn btn-ult":"btn btn-upg"; } else { btn.innerHTML = "NIVEL MÁXIMO"; btn.disabled = true; btn.className = "btn"; }
         document.getElementById('btn-sell').innerHTML = `VENDER ($${Math.floor(t.spent*0.7)})`;
     },
     renderShop() {
@@ -907,6 +1217,31 @@ const Game = {
         this.speed = this.speed === 1 ? 2 : 1;
         document.getElementById('speed-btn').innerText = "VELOCIDAD: x" + this.speed;
         document.getElementById('speed-btn').style.background = this.speed === 2 ? "#00695c" : "#222";
+    },
+
+    // --- FUNCIONES MODALES Y ONLINE ---
+    openModal(id) { document.getElementById(id).style.display = 'flex'; },
+    closeModal(id) { document.getElementById(id).style.display = 'none'; },
+    submitAuth() {
+        const u = document.getElementById('auth-user').value;
+        const p = document.getElementById('auth-pass').value;
+        if(!u || !p) return alert("Rellena ambos campos");
+        window.AuthManager.login(u, p);
+    },
+    openLeaderboard() {
+        this.openModal('lb-modal');
+        this.loadLeaderboard(0.10); // Default medio
+    },
+    async loadLeaderboard(diff) {
+        document.getElementById('lb-content').innerText = "Cargando...";
+        const data = await window.ScoreManager.getScores(diff);
+        let html = '<table class="lb-table"><tr><th>RANGO</th><th>JUGADOR</th><th>OLEADAS</th></tr>';
+        if(data.length === 0) html += '<tr><td colspan="3" style="text-align:center; padding:20px; color:#666">No hay puntuaciones aún.</td></tr>';
+        data.forEach((s, i) => {
+            html += `<tr><td class="lb-rank">#${i+1}</td><td>${s.username}</td><td class="lb-wave">${s.wave}</td></tr>`;
+        });
+        html += '</table>';
+        document.getElementById('lb-content').innerHTML = html;
     }
 };
 
