@@ -327,7 +327,7 @@ const ZOMBIE_MAP = {
 
 const PALETTE = {
     cannon: '#ff9100', bow: '#00e676', mortar: '#f50057', ice: '#00b0ff', 
-    electro: '#d500f9', support: '#ffffff', laser: '#ff00cc', sniper: '#76ff03', 
+    electro: '#d500f9', laser: '#ff00cc', sniper: '#76ff03', 
     minigun: '#2979ff', plasma: '#ff3d00', titan: '#ffd700'
 };
 
@@ -475,8 +475,7 @@ class Tower extends Entity {
         this.range = data.range; this.rate = data.rate; this.spent = data.cost;
         this.level = 1; this.cooldown = 0; this.angle = -Math.PI/2; this.recoil = 0;
         this.pierce = 0; this.splash = data.splash||0; this.chain = 0; this.multiShot = 0; this.isUlt = false;
-        if(type === 'support') this.buff = data.buff;
-        this.buffVal = 0; // Inicializar valor de bufo recibido
+        // Se ha eliminado la lógica de soporte (buff)
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
@@ -488,32 +487,9 @@ class Tower extends Entity {
         if(this.recoil > 0) this.recoil *= 0.8;
         if(this.cooldown > 0) this.cooldown--;
         
-        // --- LOGICA DEL RADAR CORREGIDA ---
-        if(this.key === 'support') {
-            Game.towers.forEach(t => { 
-                if(t !== this && Math.hypot(t.x-this.x, t.y-this.y) <= this.range) { 
-                    t.buffed = true; 
-                    // No sumamos infinitamente, asignamos el valor máximo
-                    t.tempBuffVal = Math.max(t.tempBuffVal || 0, this.buff); 
-                } 
-            });
-            if(Game.frames % 60 === 0) Game.addJuice('ring', this.x, this.y, this.range, 'rgba(255,255,255,0.05)');
-            return;
-        }
-
-        // Aplicar el buff calculado en el frame anterior
-        let rateMod = 1;
-        if(this.buffed) { 
-            rateMod += (this.tempBuffVal || 0); 
-            // Reset flags for next frame
-            this.buffed = false; 
-            this.tempBuffVal = 0; 
-        }
-
         // --- ARREGLO DEL FREEZE (CAP RATE) ---
         // Limitamos la velocidad máxima de disparo a 3 frames mínimo (20 disparos/seg)
-        // para evitar que el bucle de disparo congele el navegador si rateMod es muy alto o rate es muy bajo
-        let effectiveRate = Math.max(3, this.rate / rateMod);
+        let effectiveRate = Math.max(3, this.rate);
         
         if(this.cooldown <= 0) {
             const target = this.findTarget();
@@ -575,7 +551,6 @@ class Tower extends Entity {
         else if (this.key === 'minigun') { ctx.fillRect(-10,-10,20,20); ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3); }
         else if (this.key === 'laser') { ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-5,8); ctx.lineTo(-5,-8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(0,-1,10,2); }
         else if (this.key === 'titan') { ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke(); ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill(); }
-        else if (this.key === 'support') { ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.strokeStyle = this.color; ctx.lineWidth=3; ctx.stroke(); ctx.rotate(Game.frames * 0.1); ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,12,0,0.5); ctx.lineTo(0,0); ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fill(); }
         else { ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5,0,3,0,Math.PI*2); ctx.fill(); }
         ctx.restore();
     }
