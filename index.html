@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.2 Online</title>
+    <title>TowerDefense - Neon Zombie V3.2.1 (Vulcan Nerf)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -364,8 +364,8 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.2</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">ONLINE EDITION</div>
+        <div class="title-big">NEON DEFENSE V3.2.1</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">ONLINE EDITION - VULCAN NERF</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -588,13 +588,13 @@ const TOWER_DATA = {
     },
     minigun: { 
         name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, 
-        cost: 400, dmg: 16, range: 4*TILE, rate: 4, // NERF: 3 -> 4 frames (15 disparos/s)
+        cost: 500, dmg: 11, range: 4*TILE, rate: 5, // NERF SEVERO: Coste subido, Daño bajado, Lento
         desc: "Lluvia de plomo.", 
         upgrades: [
-            {cost:600, text:"+4 Daño", apply:(t)=>t.dmg+=4},
+            {cost:600, text:"+4 Daño", apply:(t)=>t.dmg+=4}, // +4 es un buff % mayor ahora que la base es baja
             {cost:900, text:"+1 Rango", apply:(t)=>t.range+=TILE},
             {cost:1200, text:"Precisión", apply:(t)=>{t.accuracy=true; t.dmg=Math.floor(t.dmg*1.1);}},
-            {cost:3000, text:"ULTIMATE: Bullet Hell", apply:(t)=>{t.isUlt=true; t.multiShot=2;}} // Doble barril
+            {cost:3500, text:"ULTIMATE: Bullet Hell", apply:(t)=>{t.isUlt=true; t.multiShot=2;}} 
         ] 
     },
     
