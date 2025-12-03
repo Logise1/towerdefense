@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.2.1 (Vulcan Nerf)</title>
+    <title>TowerDefense - Neon Zombie V3.3 (Apocalypse)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -13,7 +13,6 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- CONFIGURACIÓN FIREBASE DEL USUARIO ---
         const firebaseConfig = {
             apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
             authDomain: "towerdefense-dfbfb.firebaseapp.com",
@@ -27,11 +26,8 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // ID de la app para la ruta de la base de datos (Regla 1)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        // --- GESTIÓN DE USUARIOS ---
         window.AuthManager = {
             user: null,
             login: async (username, password) => {
@@ -42,7 +38,6 @@
                     Game.closeModal('auth-modal');
                 } catch (error) {
                     if(error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                        // Intentar registro si falla login
                         if(confirm("Usuario no encontrado o contraseña incorrecta. ¿Quieres crear una cuenta nueva con estos datos?")) {
                             try {
                                 await createUserWithEmailAndPassword(auth, email, password);
@@ -63,7 +58,6 @@
             }
         };
 
-        // Escuchar cambios de sesión
         onAuthStateChanged(auth, (user) => {
             window.AuthManager.user = user;
             const btn = document.getElementById('btn-auth-main');
@@ -81,22 +75,18 @@
             }
         });
 
-        // --- GESTIÓN DE LEADERBOARD ---
         window.ScoreManager = {
             saveScore: async (wave, difficulty) => {
-                if (!window.AuthManager.user) return; // Solo guardar si está logueado
+                if (!window.AuthManager.user) return;
                 const username = window.AuthManager.user.email.split('@')[0];
-                
                 try {
-                    // Ruta estricta según Regla 1
                     const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
                     await addDoc(scoresRef, {
                         username: username,
                         wave: wave,
-                        difficulty: difficulty, // Guardamos el valor numérico (0.05, 0.10, etc)
+                        difficulty: difficulty,
                         timestamp: Date.now()
                     });
-                    console.log("Puntaje guardado!");
                 } catch (e) {
                     console.error("Error guardando score:", e);
                 }
@@ -104,17 +94,12 @@
             getScores: async (difficultyVal) => {
                 try {
                     const scoresRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
-                    // Regla 2: No usar querys complejas. Traer todo y filtrar en JS.
                     const snapshot = await getDocs(scoresRef);
                     let scores = [];
                     snapshot.forEach(doc => scores.push(doc.data()));
-
-                    // Filtrar por dificultad y ordenar por oleada descendente
-                    // Usamos una pequeña tolerancia para comparar floats si fuera necesario, pero aquí string/number exacto vale
                     const filtered = scores.filter(s => Math.abs(s.difficulty - difficultyVal) < 0.001);
                     filtered.sort((a, b) => b.wave - a.wave);
-
-                    return filtered.slice(0, 10); // Top 10
+                    return filtered.slice(0, 10);
                 } catch (e) {
                     console.error("Error cargando leaderboard:", e);
                     return [];
@@ -319,7 +304,7 @@
         .btn-restart { padding: 15px 40px; font-size: 1.5rem; border: 2px solid #ff2a6d; color: #ff2a6d; background: transparent; cursor: pointer; text-transform: uppercase; font-weight: bold; }
         .btn-restart:hover { background: #ff2a6d; color: white; }
 
-        /* MODALS (Auth & Leaderboard) */
+        /* MODALS */
         .modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: #111; border: 1px solid var(--accent); border-radius: 8px;
@@ -364,8 +349,8 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.2.1</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">ONLINE EDITION - VULCAN NERF</div>
+        <div class="title-big">NEON DEFENSE V3.3</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">APOCALYPSE EDITION</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -629,7 +614,8 @@ const ENEMY_DATA = {
     fast: { hp: 10, speed: 3.2, money: 8, color: '#ffea00', radius: 8, glow: 'rgba(255,234,0,0.5)' },
     tank: { hp: 60, speed: 0.8, money: 25, color: '#ff3d00', radius: 14, glow: 'rgba(255,61,0,0.5)' },
     special: { hp: 25, speed: 1.6, money: 15, color: '#d500f9', radius: 11, immune: true, glow: 'rgba(213,0,249,0.5)' },
-    boss: { hp: 400, speed: 0.5, money: 200, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' }
+    boss: { hp: 400, speed: 0.5, money: 200, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' },
+    white_boss: { hp: 3000, speed: 0.4, money: 500, color: '#ffffff', radius: 25, immune: true, glow: 'rgba(255,255,255,1)', white: true }
 };
 
 const AudioEngine = {
@@ -643,17 +629,18 @@ const AudioEngine = {
         const now = this.ctx.currentTime;
         
         if(type === 'shoot') {
-            osc.type = 'triangle'; 
-            osc.frequency.setValueAtTime(300, now);
+            // New Satisfying Shoot Sound
+            osc.type = 'square'; // More "8-bit" impact
+            osc.frequency.setValueAtTime(400 + Math.random()*100, now);
             osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
-            gain.gain.setValueAtTime(0.03, now); 
+            gain.gain.setValueAtTime(0.05, now); 
             gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
             osc.start(now); osc.stop(now + 0.1);
         } else if (type === 'hit') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(100, now);
+            osc.frequency.setValueAtTime(150, now);
             osc.frequency.linearRampToValueAtTime(0, now + 0.05);
-            gain.gain.setValueAtTime(0.02, now);
+            gain.gain.setValueAtTime(0.03, now);
             osc.start(now); osc.stop(now + 0.05);
         }
     }
@@ -669,6 +656,7 @@ class Enemy extends Entity {
         const waveMult = 1 + (Game.wave * 0.35); 
         this.maxHp = Math.floor(data.hp * waveMult);
         if(type === 'boss') this.maxHp = Math.floor(this.maxHp * 2.5);
+        // White boss scaling is handled in base stats
         this.hp = this.maxHp;
         this.speedBase = data.speed;
         this.speed = this.speedBase;
@@ -677,6 +665,7 @@ class Enemy extends Entity {
         this.radius = data.radius;
         this.money = data.money;
         this.immune = data.immune || false;
+        this.isWhite = data.white || false;
         this.slowTimer = 0; 
         this.freezeTimer = 0; 
         this.flash = 0;
@@ -759,16 +748,25 @@ class Enemy extends Entity {
         if (this.totalFrozen >= 120 && Game.frames % 20 < 10) {
              ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
         } else {
-             ctx.shadowBlur = 10; ctx.shadowColor = this.glow;
+             ctx.shadowBlur = 15; ctx.shadowColor = this.glow;
         }
 
         ctx.fillStyle = this.flash > 0 ? '#fff' : (this.freezeTimer > 0 ? '#ccffff' : this.color);
         
         ctx.beginPath();
-        if(this.immune) { ctx.moveTo(0, -this.radius); ctx.lineTo(this.radius, this.radius); ctx.lineTo(-this.radius, this.radius); } 
+        if(this.immune) { 
+            // Triangle/Diamond shape for immune/bosses
+            ctx.moveTo(0, -this.radius); ctx.lineTo(this.radius, 0); ctx.lineTo(0, this.radius); ctx.lineTo(-this.radius, 0); 
+        } 
         else if (this.radius > 15) { ctx.arc(0,0,this.radius, 0, Math.PI*2); } 
         else { ctx.arc(0,0,this.radius,0,Math.PI*2); }
         ctx.fill();
+        
+        // White boss decoration
+        if(this.isWhite) {
+            ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
         ctx.shadowBlur = 0; 
 
         // Health Bar
@@ -797,12 +795,15 @@ class Tower extends Entity {
         this.critMult = data.critMult || 1;
         this.slow = data.slow || 0;
         this.slowDur = data.slowDur || 0;
+        
+        this.efficiency = 1.0; // For blaster spam nerf
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
         if(!upg) return;
         upg.apply(this); this.spent += upg.cost; this.level++;
         Game.addJuice('ring', this.x, this.y, TILE, '#fff');
+        Game.recalcBlasterNerf();
     }
     update() {
         if(this.recoil > 0) this.recoil *= 0.8;
@@ -905,7 +906,16 @@ class Tower extends Entity {
             ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); 
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5,0,3,0,Math.PI*2); ctx.fill();
         }
+        
         ctx.restore();
+
+        // Draw Efficiency Penalty Text
+        if(this.efficiency < 1.0) {
+            ctx.fillStyle = '#ff2a6d';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${Math.floor(this.efficiency*100)}%`, this.x, this.y - 20);
+        }
     }
 }
 
@@ -958,7 +968,8 @@ class Projectile extends Entity {
         }
     }
     hitSingle(e) {
-        let dmg = this.tower.dmg; 
+        // Apply Efficiency Nerf
+        let dmg = this.tower.dmg * (this.tower.efficiency || 1); 
         
         // Crit Logic
         if(this.tower.critChance > 0 && Math.random() < this.tower.critChance) {
@@ -979,9 +990,10 @@ class Projectile extends Entity {
     }
     hitArea(x, y) {
         Game.addJuice('explosion', x, y, this.tower.splash, this.tower.color); Game.shake = 6;
+        let dmg = this.tower.dmg * (this.tower.efficiency || 1);
         for(let e of Game.enemies) {
             if(Math.hypot(e.x-x, e.y-y) <= this.tower.splash) {
-                Game.damageEnemy(e, this.tower.dmg);
+                Game.damageEnemy(e, dmg);
                 // SPLASH APPLIES EFFECTS
                 if(this.tower.key==='ice') { 
                     if(this.tower.freeze) e.applyStatus('freeze', 60); 
@@ -1055,6 +1067,7 @@ const Game = {
                 const type = this.waveQueue.shift();
                 this.enemies.push(new Enemy(type));
                 this.spawnTimer = type === 'fast' ? 12 : 35;
+                if(type === 'boss' || type === 'white_boss') this.spawnTimer = 60;
             }
         }
 
@@ -1147,7 +1160,28 @@ const Game = {
         const count = 6 + Math.floor(this.wave * 1.8);
         this.waveQueue = [];
         document.getElementById('wave-info').innerText = `Oleada ${this.wave} entrante...`;
-        if(this.wave % 5 === 0) { this.waveQueue.push('boss'); for(let i=0; i<8; i++) this.waveQueue.push('fast'); } else { for(let i=0; i<count; i++) { let r = Math.random(); if(this.wave < 3) this.waveQueue.push('basic'); else if (r < 0.5) this.waveQueue.push('basic'); else if (r < 0.8) this.waveQueue.push('fast'); else if (r < 0.95) this.waveQueue.push('tank'); else this.waveQueue.push('special'); } }
+        
+        // --- WAVE LOGIC UPDATE V3.3 ---
+        if (this.wave >= 30) {
+            // Rondas de Apocalipsis
+            const bossCount = 2 + Math.floor((this.wave - 30) / 2);
+            for(let i=0; i<bossCount; i++) this.waveQueue.push('boss');
+            
+            // White Bosses (Cada 5 rondas después de la 30)
+            if(this.wave % 5 === 0) {
+                this.waveQueue.push('white_boss');
+            }
+            
+            // Relleno brutal
+            for(let i=0; i<30; i++) {
+                if(Math.random()<0.5) this.waveQueue.push('tank'); else this.waveQueue.push('fast');
+            }
+        } else {
+            // Rondas normales
+            if(this.wave % 5 === 0) { this.waveQueue.push('boss'); for(let i=0; i<8; i++) this.waveQueue.push('fast'); } 
+            else { for(let i=0; i<count; i++) { let r = Math.random(); if(this.wave < 3) this.waveQueue.push('basic'); else if (r < 0.5) this.waveQueue.push('basic'); else if (r < 0.8) this.waveQueue.push('fast'); else if (r < 0.95) this.waveQueue.push('tank'); else this.waveQueue.push('special'); } }
+        }
+        
         this.updateUI();
     },
     addJuice(type, x, y, extra1, extra2) { if(type === 'particle') for(let i=0; i<extra1; i++) this.particles.push({x:x, y:y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:1.0, decay:0.04, color:extra2}); else if (type === 'explosion') this.particles.push({x:x, y:y, size:extra1, life:1.0, decay:0.08, color:extra2, type:'ring'}); else if (type === 'text') this.particles.push({x:x, y:y, vx:0, vy:-1, life:1.0, decay:0.02, text:extra1, color:extra2, type:'text'}); else if (type === 'bolt') this.particles.push({x:x, y:y, tx:extra1, ty:extra2, life:0.2, decay:0.1, color:'#fff', type:'bolt'}); else if (type === 'ring') this.particles.push({x:x, y:y, size:extra1, life:0.5, decay:0.02, color:extra2, type:'ring'}); },
@@ -1162,6 +1196,22 @@ const Game = {
         this.towers = this.towers.filter(t => t !== this.selectedTower); this.selectedTower = null;
         document.getElementById('upgrade-panel').style.display = 'none'; this.updateUI();
         Game.addJuice('particle', 0, 0, 0, null);
+        Game.recalcBlasterNerf();
+    },
+    // --- BLASTER SPAM NERF LOGIC ---
+    recalcBlasterNerf() {
+        const blasters = this.towers.filter(t => t.key === 'cannon');
+        const count = blasters.length;
+        // Empieza a penalizar después de la 5ª torre
+        // -10% daño por cada torre extra
+        blasters.forEach(t => {
+            if(count > 5) {
+                const penalty = (count - 5) * 0.1;
+                t.efficiency = Math.max(0.2, 1.0 - penalty);
+            } else {
+                t.efficiency = 1.0;
+            }
+        });
     },
     draggingType: null,
     startDrag(type) { if(this.money >= TOWER_DATA[type].cost) { this.draggingType = type; const ghost = document.getElementById('drag-ghost'); ghost.style.display = 'block'; ghost.style.borderColor = TOWER_DATA[type].color; ghost.style.boxShadow = `0 0 15px ${TOWER_DATA[type].color}`; } },
@@ -1174,7 +1224,14 @@ const Game = {
             const grid = this.map.grid;
             if(grid[r] && grid[r][c] === 0 && !this.towers.some(t => t.c === c && t.r === r)) {
                 const cost = TOWER_DATA[this.draggingType].cost;
-                if(this.money >= cost) { this.money -= cost; this.towers.push(new Tower(c, r, this.draggingType)); this.updateUI(); AudioEngine.play('hit'); Game.addJuice('ring', c*TILE+TILE/2, r*TILE+TILE/2, TILE, '#fff'); }
+                if(this.money >= cost) { 
+                    this.money -= cost; 
+                    this.towers.push(new Tower(c, r, this.draggingType)); 
+                    this.updateUI(); 
+                    AudioEngine.play('hit'); 
+                    Game.addJuice('ring', c*TILE+TILE/2, r*TILE+TILE/2, TILE, '#fff');
+                    Game.recalcBlasterNerf();
+                }
             }
         }
         this.draggingType = null; document.getElementById('drag-ghost').style.display = 'none';
@@ -1193,7 +1250,7 @@ const Game = {
         const data = TOWER_DATA[t.key], nextUpg = data.upgrades[t.level - 1];
         panel.style.display = 'flex';
         document.getElementById('upg-level').innerText = "NIVEL " + t.level; document.getElementById('upg-name').innerText = t.name;
-        document.getElementById('upg-desc').innerHTML = `<div style="display:flex; justify-content:space-between"><span>Daño:</span> <span style="color:#fff">${t.dmg.toFixed(0)}</span></div><div style="display:flex; justify-content:space-between"><span>Velocidad:</span> <span style="color:#fff">${(60/t.rate).toFixed(1)}/s</span></div><div style="display:flex; justify-content:space-between"><span>Rango:</span> <span style="color:#fff">${(t.range/TILE).toFixed(1)}</span></div>`;
+        document.getElementById('upg-desc').innerHTML = `<div style="display:flex; justify-content:space-between"><span>Daño:</span> <span style="color:#fff">${(t.dmg * (t.efficiency||1)).toFixed(0)}</span></div><div style="display:flex; justify-content:space-between"><span>Velocidad:</span> <span style="color:#fff">${(60/t.rate).toFixed(1)}/s</span></div><div style="display:flex; justify-content:space-between"><span>Rango:</span> <span style="color:#fff">${(t.range/TILE).toFixed(1)}</span></div>`;
         const btn = document.getElementById('btn-upgrade');
         if(nextUpg) { btn.innerHTML = `${t.level===4?'★ MAXIMIZAR':'MEJORAR'}<br><span style="font-size:0.7em; opacity:0.8">${nextUpg.text}</span><br><span style="color:var(--gold)">$${nextUpg.cost}</span>`; btn.disabled = this.money < nextUpg.cost; btn.className = t.level===4?"btn btn-ult":"btn btn-upg"; } else { btn.innerHTML = "NIVEL MÁXIMO"; btn.disabled = true; btn.className = "btn"; }
         document.getElementById('btn-sell').innerHTML = `VENDER ($${Math.floor(t.spent*0.7)})`;
