@@ -248,7 +248,7 @@
             </div>
             <div class="btn-diff diff-hard" onclick="Game.start(0.15)">
                 <h2>DIFÍCIL</h2>
-                <div style="font-size: 0.8rem; color: #ccc;">+15% Dificultad<br>3.0x XP<br>3 Vidas<br>Mapa: Crimson</div>
+                <div style="font-size: 0.8rem; color: #ccc;">+15% Dificultad<br>3.0x XP<br>3 Vidas<br>Mapa: Lava</div>
             </div>
             <div class="btn-diff diff-imp" onclick="Game.start(0.20)">
                 <h2>IMPOSIBLE</h2>
@@ -537,7 +537,6 @@ window.Roulette = {
 };
 
 // --- GAME LOGIC ---
-// Copied and adapted from previous version
 const TILE = 40;
 const ZOMBIE_MAP = {
     grid: [
@@ -568,10 +567,10 @@ const ZOMBIE_MAP = {
 
 // --- MAP THEMES ---
 const MAP_THEMES = {
-    0.05: { path: '#00ffcc', bg: '#050508', grid: '#1a1a2e', shadow: 'rgba(0, 255, 204, 0.2)' },
-    0.10: { path: '#ffea00', bg: '#1a1200', grid: '#2e2500', shadow: 'rgba(255, 234, 0, 0.2)' },
-    0.15: { path: '#ff3d00', bg: '#1a0500', grid: '#2e0a00', shadow: 'rgba(255, 61, 0, 0.2)' },
-    0.20: { path: '#d500f9', bg: '#12001a', grid: '#20002e', shadow: 'rgba(213, 0, 249, 0.2)' }
+    0.05: { path: '#00ffcc', pathFill: '#16161d', bg: '#050508', grid: '#1a1a2e', shadow: 'rgba(0, 255, 204, 0.2)' },
+    0.10: { path: '#ffea00', pathFill: '#332200', bg: '#1a1200', grid: '#2e2500', shadow: 'rgba(255, 234, 0, 0.2)' }, // Medium: Brown-Yellow
+    0.15: { path: '#ffaa00', pathFill: '#551100', bg: '#220000', grid: '#440000', shadow: 'rgba(255, 69, 0, 0.5)' }, // Hard: Lava
+    0.20: { path: '#d500f9', pathFill: '#2a0033', bg: '#12001a', grid: '#20002e', shadow: 'rgba(213, 0, 249, 0.2)' }  // Impossible: Void
 };
 
 const TOWER_DATA = {
@@ -611,7 +610,7 @@ class Enemy extends Entity {
         this.money = data.money; this.immune = data.immune || false;
         this.slowTimer = 0; this.freezeTimer = 0; this.flash = 0; this.totalFrozen = 0;
         this.offsetX = (Math.random()-0.5)*10; this.offsetY = (Math.random()-0.5)*10;
-        // XP Value: Base money * difficulty multiplier
+        // XP Value
         let xpMult = 1;
         if(Game.difficulty >= 0.10) xpMult = 1.5;
         if(Game.difficulty >= 0.15) xpMult = 3.0;
@@ -640,7 +639,6 @@ class Enemy extends Entity {
     }
     hit(dmg) { 
         this.hp -= dmg; this.flash = 4; 
-        // Audio handled in Game
         Game.addJuice('text', this.x, this.y-15, Math.floor(dmg)); 
         if(this.hp <= 0) Game.killEnemy(this); 
     }
@@ -703,7 +701,12 @@ class Tower extends Entity {
         return best;
     }
     shoot(t) {
-        // Simple Audio mock
+        if(this.key === 'electro') this.doChain(t);
+        else if(this.key === 'bow' && this.multiShot > 0) for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, t, this.angle + i*0.25));
+        else if (this.key === 'minigun' && this.multiShot > 0) for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, t, this.angle + i*0.15));
+        else Game.projectiles.push(new Projectile(this, t, this.angle));
+        
+        // Simple Audio
         if(window.AudioContext) {
             const ctx = new (window.AudioContext||window.webkitAudioContext)();
             const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -713,11 +716,6 @@ class Tower extends Entity {
             g.gain.setValueAtTime(0.05, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime+0.1);
             o.start(); o.stop(ctx.currentTime+0.1);
         }
-
-        if(this.key === 'electro') this.doChain(t);
-        else if(this.key === 'bow' && this.multiShot > 0) for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, t, this.angle + i*0.25));
-        else if (this.key === 'minigun' && this.multiShot > 0) for(let i=-1; i<=1; i++) Game.projectiles.push(new Projectile(this, t, this.angle + i*0.15));
-        else Game.projectiles.push(new Projectile(this, t, this.angle));
     }
     doChain(t) {
         let visited=[t], curr=t, dmg=this.dmg;
@@ -885,16 +883,32 @@ window.Game = {
         if(this.shake > 0) { ctx.save(); ctx.translate((Math.random()-0.5)*this.shake, (Math.random()-0.5)*this.shake); }
 
         ctx.strokeStyle = this.theme.grid; ctx.lineWidth = 1; ctx.beginPath();
-        for(let x=0; x<=600; x+=TILE) { ctx.moveTo(x,0); ctx.lineTo(x,720); }
-        for(let y=0; y<=720; y+=TILE) { ctx.moveTo(0,y); ctx.lineTo(600,y); }
+        const mapW = 600; const mapH = 720;
+        for(let x=0; x<=mapW; x+=TILE) { ctx.moveTo(x,0); ctx.lineTo(x,mapH); }
+        for(let y=0; y<=mapH; y+=TILE) { ctx.moveTo(0,y); ctx.lineTo(mapW,y); }
         ctx.stroke();
 
+        const grid = this.map.grid;
+        const gridRows = grid.length;
+        const gridCols = grid[0].length;
+
         ctx.shadowBlur = 15; ctx.shadowColor = this.theme.shadow;
-        for(let r=0; r<18; r++) for(let c=0; c<15; c++) if(ZOMBIE_MAP.grid[r][c]===1) { ctx.fillStyle = '#16161d'; ctx.fillRect(c*TILE, r*TILE, TILE, TILE); ctx.strokeStyle = '#2a2a40'; ctx.lineWidth = 1; ctx.strokeRect(c*TILE, r*TILE, TILE, TILE); }
+        for(let r=0; r<gridRows; r++) for(let c=0; c<gridCols; c++) if(grid[r][c]===1) { 
+            ctx.fillStyle = this.theme.pathFill || '#16161d';
+            ctx.fillRect(c*TILE, r*TILE, TILE, TILE); 
+            ctx.strokeStyle = '#2a2a40'; 
+            ctx.lineWidth = 1; 
+            ctx.strokeRect(c*TILE, r*TILE, TILE, TILE); 
+        }
         ctx.shadowBlur = 0;
 
         ctx.strokeStyle = this.theme.path; ctx.lineWidth = 2; ctx.globalAlpha = 0.3;
-        for(let r=0; r<18; r++) for(let c=0; c<15; c++) if(ZOMBIE_MAP.grid[r][c]===1) { if(r>0 && ZOMBIE_MAP.grid[r-1][c]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, r*TILE); ctx.lineTo((c+1)*TILE, r*TILE); ctx.stroke(); } if(r<ROWS-1 && ZOMBIE_MAP.grid[r+1][c]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, (r+1)*TILE); ctx.lineTo((c+1)*TILE, (r+1)*TILE); ctx.stroke(); } if(c>0 && ZOMBIE_MAP.grid[r][c-1]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, r*TILE); ctx.lineTo(c*TILE, (r+1)*TILE); ctx.stroke(); } if(c<COLS-1 && ZOMBIE_MAP.grid[r][c+1]!==1) { ctx.beginPath(); ctx.moveTo((c+1)*TILE, r*TILE); ctx.lineTo((c+1)*TILE, (r+1)*TILE); ctx.stroke(); } }
+        for(let r=0; r<gridRows; r++) for(let c=0; c<gridCols; c++) if(grid[r][c]===1) { 
+            if(r>0 && grid[r-1][c]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, r*TILE); ctx.lineTo((c+1)*TILE, r*TILE); ctx.stroke(); } 
+            if(r<gridRows-1 && grid[r+1][c]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, (r+1)*TILE); ctx.lineTo((c+1)*TILE, (r+1)*TILE); ctx.stroke(); } 
+            if(c>0 && grid[r][c-1]!==1) { ctx.beginPath(); ctx.moveTo(c*TILE, r*TILE); ctx.lineTo(c*TILE, (r+1)*TILE); ctx.stroke(); } 
+            if(c<gridCols-1 && grid[r][c+1]!==1) { ctx.beginPath(); ctx.moveTo((c+1)*TILE, r*TILE); ctx.lineTo((c+1)*TILE, (r+1)*TILE); ctx.stroke(); } 
+        }
         ctx.globalAlpha = 1;
 
         if(this.selectedTower) { ctx.beginPath(); ctx.arc(this.selectedTower.x, this.selectedTower.y, this.selectedTower.range, 0, Math.PI*2); ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; ctx.fill(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.setLineDash([]); }
@@ -958,7 +972,8 @@ window.Game = {
         const rect = this.canvas.getBoundingClientRect(), x = e.clientX - rect.left, y = e.clientY - rect.top;
         if(x>=0 && x<=600 && y>=0 && y<=720) {
             const c = Math.floor(x/TILE), r = Math.floor(y/TILE);
-            if(ZOMBIE_MAP.grid[r] && ZOMBIE_MAP.grid[r][c] === 0 && !this.towers.some(t => t.c === c && t.r === r)) {
+            const grid = this.map.grid;
+            if(grid[r] && grid[r][c] === 0 && !this.towers.some(t => t.c === c && t.r === r)) {
                 const cost = TOWER_DATA[this.draggingType].cost;
                 if(this.money >= cost) { this.money -= cost; this.towers.push(new Tower(c, r, this.draggingType)); this.updateUI(); AudioEngine.play('hit'); Game.addJuice('ring', c*TILE+TILE/2, r*TILE+TILE/2, TILE, '#fff'); }
             }
