@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense</title>
+    <title>TowerDefense - Neon Zombie V2</title>
     <!-- Importamos una fuente "Gamer" de Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
@@ -221,7 +221,7 @@
     
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">TOWER DEFENSE</div>
+        <div class="title-big">NEON DEFENSE</div>
         <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">SELECCIONA NIVEL DE AMENAZA</div>
         
         <div class="difficulty-container">
@@ -332,18 +332,23 @@ const PALETTE = {
 };
 
 const TOWER_DATA = {
-    cannon: { name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, cost: 50, dmg: 12, range: 3*TILE, rate: 55, desc: "Daño directo.", upgrades: [{cost:30,text:"+5 Daño",apply:(t)=>t.dmg+=5},{cost:50,text:"+10 Daño",apply:(t)=>t.dmg+=10},{cost:80,text:"+Alcance",apply:(t)=>{t.dmg+=15;t.range+=0.5*TILE}},{cost:150,text:"ULTIMATE: Explosivo",apply:(t)=>{t.isUlt=true;t.splash=2*TILE;t.dmg+=50}}] },
-    bow: { name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, cost: 70, dmg: 7, range: 4*TILE, rate: 25, desc: "Disparo veloz.", upgrades: [{cost:30,text:"+Velocidad",apply:(t)=>t.rate=20},{cost:50,text:"+2 Daño",apply:(t)=>{t.dmg+=2;t.rate=18}},{cost:80,text:"Perforante",apply:(t)=>t.pierce=2},{cost:150,text:"ULTIMATE: Multi-Shot",apply:(t)=>{t.isUlt=true;t.multiShot=3}}] },
-    mortar: { name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, cost: 120, dmg: 20, range: 5*TILE, rate: 80, splash: 2.2*TILE, desc: "Área masiva.", upgrades: [{cost:40,text:"+Área",apply:(t)=>t.splash+=1*TILE},{cost:60,text:"+15 Daño",apply:(t)=>t.dmg+=15},{cost:90,text:"+Velocidad",apply:(t)=>t.rate=60},{cost:150,text:"ULTIMATE: Nuke",apply:(t)=>{t.isUlt=true;t.splash=3.5*TILE;t.dmg+=60;t.projectileSpeed=0.08}}] },
-    ice: { name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, cost: 100, dmg: 6, range: 3*TILE, rate: 50, slow: 0.5, slowDur: 120, desc: "Ralentiza.", upgrades: [{cost:40,text:"+Duración",apply:(t)=>t.slowDur+=40},{cost:60,text:"+1 Rango",apply:(t)=>t.range+=1*TILE},{cost:90,text:"+Fuerza Slow",apply:(t)=>{t.slow=0.3;t.rate-=5}},{cost:150,text:"ULTIMATE: Zero Absoluto",apply:(t)=>{t.isUlt=true;t.freeze=true}}] },
-    electro: { name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, cost: 150, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, desc: "Cadena.", upgrades: [{cost:50,text:"+1 Salto",apply:(t)=>t.chain+=1},{cost:70,text:"+5 Daño",apply:(t)=>t.dmg+=5},{cost:100,text:"+3 Saltos",apply:(t)=>{t.chain+=3;t.rate-=5}},{cost:180,text:"ULTIMATE: Tormenta",apply:(t)=>{t.isUlt=true;t.chain=12;t.dmg+=15}}] },
+    // --- TIERS BÁSICOS (Low Cost) ---
+    cannon: { name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, cost: 60, dmg: 12, range: 3*TILE, rate: 55, desc: "Daño directo básico.", upgrades: [{cost:40,text:"+5 Daño",apply:(t)=>t.dmg+=5},{cost:60,text:"+10 Daño",apply:(t)=>t.dmg+=10},{cost:100,text:"+Alcance",apply:(t)=>{t.dmg+=15;t.range+=0.5*TILE}},{cost:200,text:"ULTIMATE: Explosivo",apply:(t)=>{t.isUlt=true;t.splash=2*TILE;t.dmg+=50}}] },
+    bow: { name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, cost: 90, dmg: 7, range: 4*TILE, rate: 25, desc: "Disparo veloz.", upgrades: [{cost:50,text:"+Velocidad",apply:(t)=>t.rate=20},{cost:70,text:"+2 Daño",apply:(t)=>{t.dmg+=2;t.rate=18}},{cost:120,text:"Perforante",apply:(t)=>t.pierce=2},{cost:250,text:"ULTIMATE: Multi-Shot",apply:(t)=>{t.isUlt=true;t.multiShot=3}}] },
     
-    // TORRES AVANZADAS
-    laser: { name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, cost: 220, dmg: 3, range: 4*TILE, rate: 5, desc: "Disparo continuo.", upgrades: [{cost:80,text:"+Daño",apply:(t)=>t.dmg+=2},{cost:120,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:200,text:"Quemadura",apply:(t)=>t.burn=true},{cost:350,text:"ULTIMATE: Disintegrator",apply:(t)=>{t.isUlt=true;t.dmg+=5;t.rate=3}}] },
-    sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, cost: 350, dmg: 80, range: 8*TILE, rate: 120, desc: "Rango extremo.", upgrades: [{cost:100,text:"+Daño",apply:(t)=>t.dmg+=40},{cost:150,text:"Perforante",apply:(t)=>t.pierce=5},{cost:250,text:"Recarga Rápida",apply:(t)=>t.rate=80},{cost:500,text:"ULTIMATE: One-Shot",apply:(t)=>{t.isUlt=true;t.dmg+=300;t.pierce+=10}}] },
-    minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 500, dmg: 8, range: 3.5*TILE, rate: 6, desc: "Lluvia de balas.", upgrades: [{cost:150,text:"+Daño",apply:(t)=>t.dmg+=4},{cost:200,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:300,text:"Sin Recoil",apply:(t)=>t.accuracy=true},{cost:600,text:"ULTIMATE: Bullet Hell",apply:(t)=>{t.isUlt=true;t.multiShot=3;t.dmg+=5}}] },
-    plasma: { name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, cost: 800, dmg: 40, range: 2.5*TILE, rate: 40, splash: 3*TILE, desc: "Área masiva.", upgrades: [{cost:250,text:"+Área",apply:(t)=>t.splash+=TILE},{cost:350,text:"+Daño",apply:(t)=>t.dmg+=30},{cost:450,text:"Napalm",apply:(t)=>t.burn=true},{cost:900,text:"ULTIMATE: Supernova",apply:(t)=>{t.isUlt=true;t.splash=5*TILE;t.dmg+=100}}] },
-    titan: { name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, cost: 2000, dmg: 500, range: 6*TILE, rate: 180, splash: 4*TILE, desc: "Destrucción total.", upgrades: [{cost:1000,text:"+Daño Divino",apply:(t)=>t.dmg+=500},{cost:1500,text:"Rango Global",apply:(t)=>t.range=20*TILE},{cost:2000,text:"Recarga",apply:(t)=>t.rate=100},{cost:5000,text:"ULTIMATE: APOCALIPSIS",apply:(t)=>{t.isUlt=true;t.dmg=5000;t.splash=10*TILE}}] }
+    // --- TIERS MEDIOS (Utility/Area) ---
+    ice: { name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, cost: 150, dmg: 6, range: 3*TILE, rate: 50, slow: 0.5, slowDur: 120, desc: "Ralentiza enemigos.", upgrades: [{cost:80,text:"+Duración",apply:(t)=>t.slowDur+=40},{cost:120,text:"+1 Rango",apply:(t)=>t.range+=1*TILE},{cost:180,text:"+Fuerza Slow",apply:(t)=>{t.slow=0.3;t.rate-=5}},{cost:300,text:"ULTIMATE: Zero Absoluto",apply:(t)=>{t.isUlt=true;t.freeze=true}}] },
+    mortar: { name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, cost: 220, dmg: 25, range: 5*TILE, rate: 80, splash: 2.2*TILE, desc: "Área masiva lenta.", upgrades: [{cost:100,text:"+Área",apply:(t)=>t.splash+=1*TILE},{cost:150,text:"+20 Daño",apply:(t)=>t.dmg+=20},{cost:250,text:"+Velocidad",apply:(t)=>t.rate=60},{cost:450,text:"ULTIMATE: Nuke",apply:(t)=>{t.isUlt=true;t.splash=3.5*TILE;t.dmg+=80;t.projectileSpeed=0.08}}] },
+    electro: { name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, cost: 350, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, desc: "Cadena eléctrica.", upgrades: [{cost:150,text:"+1 Salto",apply:(t)=>t.chain+=1},{cost:200,text:"+8 Daño",apply:(t)=>t.dmg+=8},{cost:300,text:"+3 Saltos",apply:(t)=>{t.chain+=3;t.rate-=5}},{cost:600,text:"ULTIMATE: Tormenta",apply:(t)=>{t.isUlt=true;t.chain=12;t.dmg+=20}}] },
+    
+    // --- TIERS AVANZADOS (High DPS/Special) ---
+    laser: { name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, cost: 550, dmg: 2, range: 4*TILE, rate: 4, desc: "Rayo continuo rápido.", upgrades: [{cost:250,text:"+Daño",apply:(t)=>t.dmg+=2},{cost:350,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:500,text:"Quemadura",apply:(t)=>t.burn=true},{cost:800,text:"ULTIMATE: Disintegrator",apply:(t)=>{t.isUlt=true;t.dmg+=4;t.rate=2}}] },
+    sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, cost: 800, dmg: 150, range: 8*TILE, rate: 120, desc: "Francotirador pesado.", upgrades: [{cost:300,text:"+80 Daño",apply:(t)=>t.dmg+=80},{cost:450,text:"Perforante",apply:(t)=>t.pierce=5},{cost:600,text:"Recarga Rápida",apply:(t)=>t.rate=80},{cost:1200,text:"ULTIMATE: One-Shot",apply:(t)=>{t.isUlt=true;t.dmg+=500;t.pierce+=10}}] },
+    minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 1200, dmg: 12, range: 3.5*TILE, rate: 6, desc: "Lluvia de plomo.", upgrades: [{cost:400,text:"+Daño",apply:(t)=>t.dmg+=6},{cost:600,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:800,text:"Sin Recoil",apply:(t)=>t.accuracy=true},{cost:1500,text:"ULTIMATE: Bullet Hell",apply:(t)=>{t.isUlt=true;t.multiShot=3;t.dmg+=8}}] },
+    
+    // --- TIERS LEGENDARIOS (Endgame) ---
+    plasma: { name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, cost: 2500, dmg: 60, range: 3*TILE, rate: 35, splash: 3*TILE, desc: "Sol en miniatura.", upgrades: [{cost:1000,text:"+Área",apply:(t)=>t.splash+=TILE},{cost:1500,text:"+Daño",apply:(t)=>t.dmg+=50},{cost:2000,text:"Napalm",apply:(t)=>t.burn=true},{cost:4000,text:"ULTIMATE: Supernova",apply:(t)=>{t.isUlt=true;t.splash=6*TILE;t.dmg+=200}}] },
+    titan: { name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, cost: 5000, dmg: 800, range: 6*TILE, rate: 150, splash: 4*TILE, desc: "Destrucción total.", upgrades: [{cost:2500,text:"+Daño Divino",apply:(t)=>t.dmg+=800},{cost:3500,text:"Rango Global",apply:(t)=>t.range=25*TILE},{cost:5000,text:"Recarga",apply:(t)=>t.rate=80},{cost:10000,text:"ULTIMATE: APOCALIPSIS",apply:(t)=>{t.isUlt=true;t.dmg=8000;t.splash=12*TILE}}] }
 };
 
 const ENEMY_DATA = {
@@ -390,13 +395,8 @@ class Enemy extends Entity {
         const data = ENEMY_DATA[type];
         
         // --- ESCALADO DE DIFICULTAD ---
-        // Fórmula: Base * (1 + dificultad)^Oleada
-        // Ejemplo Dificultad 0.15 (Hard): Wave 10 -> Base * (1.15)^10 = Base * 4.0
         const diffMultiplier = Math.pow(1 + Game.difficulty, Game.wave - 1);
-        
         this.maxHp = Math.floor(data.hp * diffMultiplier);
-        
-        // El Boss escala aún más fuerte
         if(type === 'boss') this.maxHp = Math.floor(this.maxHp * 2.5);
         
         this.hp = this.maxHp;
@@ -475,7 +475,7 @@ class Tower extends Entity {
         this.range = data.range; this.rate = data.rate; this.spent = data.cost;
         this.level = 1; this.cooldown = 0; this.angle = -Math.PI/2; this.recoil = 0;
         this.pierce = 0; this.splash = data.splash||0; this.chain = 0; this.multiShot = 0; this.isUlt = false;
-        // Se ha eliminado la lógica de soporte (buff)
+        // No support
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
@@ -487,9 +487,7 @@ class Tower extends Entity {
         if(this.recoil > 0) this.recoil *= 0.8;
         if(this.cooldown > 0) this.cooldown--;
         
-        // --- ARREGLO DEL FREEZE (CAP RATE) ---
-        // Limitamos la velocidad máxima de disparo a 3 frames mínimo (20 disparos/seg)
-        let effectiveRate = Math.max(3, this.rate);
+        let effectiveRate = Math.max(3, this.rate); // Cap rate to avoid freeze
         
         if(this.cooldown <= 0) {
             const target = this.findTarget();
@@ -614,7 +612,7 @@ class Projectile extends Entity {
 const Game = {
     canvas: document.getElementById('gameCanvas'),
     ctx: document.getElementById('gameCanvas').getContext('2d'),
-    money: 100, lives: 20, wave: 1, difficulty: 0.1, // Default 10%
+    money: 150, lives: 20, wave: 1, difficulty: 0.1, // Default 10%
     enemies: [], towers: [], projectiles: [], particles: [], waveQueue: [], 
     spawnTimer: 0, playing: false, speed: 1, shake: 0, 
     selectedTower: null, frames: 0,
