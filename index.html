@@ -343,8 +343,10 @@ const TOWER_DATA = {
     
     // --- TIERS AVANZADOS (High DPS/Special) ---
     laser: { name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, cost: 550, dmg: 2, range: 4*TILE, rate: 4, desc: "Rayo continuo rápido.", upgrades: [{cost:250,text:"+Daño",apply:(t)=>t.dmg+=2},{cost:350,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:500,text:"Quemadura",apply:(t)=>t.burn=true},{cost:800,text:"ULTIMATE: Disintegrator",apply:(t)=>{t.isUlt=true;t.dmg+=4;t.rate=2}}] },
-    sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, cost: 800, dmg: 150, range: 8*TILE, rate: 120, desc: "Francotirador pesado.", upgrades: [{cost:300,text:"+80 Daño",apply:(t)=>t.dmg+=80},{cost:450,text:"Perforante",apply:(t)=>t.pierce=5},{cost:600,text:"Recarga Rápida",apply:(t)=>t.rate=80},{cost:1200,text:"ULTIMATE: One-Shot",apply:(t)=>{t.isUlt=true;t.dmg+=500;t.pierce+=10}}] },
-    minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 1200, dmg: 12, range: 3.5*TILE, rate: 6, desc: "Lluvia de plomo.", upgrades: [{cost:400,text:"+Daño",apply:(t)=>t.dmg+=6},{cost:600,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:800,text:"Sin Recoil",apply:(t)=>t.accuracy=true},{cost:1500,text:"ULTIMATE: Bullet Hell",apply:(t)=>{t.isUlt=true;t.multiShot=3;t.dmg+=8}}] },
+    // RAILGUN BUFF: Cost 750, Damage 400 (was 150), Rate 100 (was 120, faster)
+    sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, cost: 750, dmg: 400, range: 9*TILE, rate: 100, desc: "Francotirador letal.", upgrades: [{cost:300,text:"+100 Daño",apply:(t)=>t.dmg+=100},{cost:450,text:"Perforante",apply:(t)=>t.pierce=5},{cost:600,text:"Recarga Rápida",apply:(t)=>t.rate=70},{cost:1200,text:"ULTIMATE: One-Shot",apply:(t)=>{t.isUlt=true;t.dmg+=800;t.pierce+=10}}] },
+    // VULCAN BUFF: Cost 1100, Damage 24 (was 12), Rate 4 (was 6, faster)
+    minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 1100, dmg: 24, range: 4*TILE, rate: 4, desc: "Lluvia de plomo.", upgrades: [{cost:400,text:"+Daño",apply:(t)=>t.dmg+=10},{cost:600,text:"+Rango",apply:(t)=>t.range+=TILE},{cost:800,text:"Sin Recoil",apply:(t)=>t.accuracy=true},{cost:1500,text:"ULTIMATE: Bullet Hell",apply:(t)=>{t.isUlt=true;t.multiShot=3;t.dmg+=15}}] },
     
     // --- TIERS LEGENDARIOS (Endgame) ---
     plasma: { name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, cost: 2500, dmg: 60, range: 3*TILE, rate: 35, splash: 3*TILE, desc: "Sol en miniatura.", upgrades: [{cost:1000,text:"+Área",apply:(t)=>t.splash+=TILE},{cost:1500,text:"+Daño",apply:(t)=>t.dmg+=50},{cost:2000,text:"Napalm",apply:(t)=>t.burn=true},{cost:4000,text:"ULTIMATE: Supernova",apply:(t)=>{t.isUlt=true;t.splash=6*TILE;t.dmg+=200}}] },
@@ -629,11 +631,18 @@ const Game = {
 
     start(diff) {
         this.difficulty = diff;
+        
+        // --- LOGICA DE VIDAS SEGUN DIFICULTAD ---
+        if(diff >= 0.20) this.lives = 1;       // Imposible
+        else if(diff >= 0.15) this.lives = 3;  // Dificil
+        else if(diff >= 0.10) this.lives = 10; // Medio
+        else this.lives = 20;                  // Facil (0.05)
+
         document.getElementById('global-overlay').classList.add('hidden');
         document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
         this.playing = true;
-        this.money = 150; // Un poco más de dinero inicial
-        this.lives = 20; this.wave = 1;
+        this.money = 150; // Dinero inicial
+        this.wave = 1;
         this.enemies = []; this.towers = []; this.projectiles = []; this.particles = [];
         this.waveQueue = [];
         this.updateUI();
