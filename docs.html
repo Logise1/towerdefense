@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Zombie - Base de Datos Táctica</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a12;
+            --panel-bg: #141423;
+            --accent: #00ffcc;
+            --gold: #ffcc00;
+            --danger: #ff2a6d;
+            --text-main: #e0e6ed;
+            --text-muted: #8899ac;
+            --border: #2a2a40;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* SIDEBAR */
+        nav {
+            width: 250px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .nav-header {
+            font-size: 1.5rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            padding: 10px 15px;
+            text-align: left;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: 0.2s;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-btn.active {
+            background: rgba(0, 255, 204, 0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .tower-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            display: inline-block;
+        }
+
+        /* MAIN CONTENT */
+        main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
+        }
+
+        .card {
+            background: rgba(20, 20, 35, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .preview-canvas {
+            width: 100px;
+            height: 100px;
+            background: #050505;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .title-block h1 { margin: 0; font-size: 3rem; text-transform: uppercase; color: white; }
+        .title-block .subtitle { color: var(--text-muted); font-size: 1.2rem; margin-top: 5px; }
+        .cost-badge { 
+            background: var(--gold); color: black; padding: 5px 10px; 
+            border-radius: 4px; font-weight: bold; font-size: 1rem; 
+            display: inline-block; margin-top: 10px;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+        }
+        .stat-val { font-size: 2rem; font-weight: 800; display: block; margin-bottom: 5px; }
+        .stat-label { color: var(--text-muted); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; }
+
+        /* UPGRADES LIST */
+        h2 { color: var(--accent); border-left: 4px solid var(--accent); padding-left: 15px; margin-bottom: 20px; }
+
+        .upgrade-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .upgrade-item {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.2s;
+        }
+        .upgrade-item:hover { border-color: #555; background: rgba(255,255,255,0.05); }
+        
+        .upg-lvl { color: var(--gold); font-weight: bold; width: 80px; }
+        .upg-desc { flex: 1; color: white; font-size: 1.1rem; }
+        .upg-cost { color: var(--text-muted); font-weight: bold; }
+        
+        .ultimate {
+            border-color: var(--danger);
+            background: linear-gradient(90deg, rgba(255, 42, 109, 0.1), transparent);
+        }
+        .ultimate .upg-lvl { color: var(--danger); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    </style>
+</head>
+<body>
+
+<nav id="nav-list">
+    <div class="nav-header">ARSENAL v3.8</div>
+    <!-- Buttons generated by JS -->
+</nav>
+
+<main id="main-content">
+    <!-- Content generated by JS -->
+    <div style="text-align: center; margin-top: 200px; color: #666;">
+        <h2>SELECCIONA UNA TORRE</h2>
+        <p>Accediendo a los archivos clasificados...</p>
+    </div>
+</main>
+
+<script>
+// --- COPIADO DEL JUEGO ORIGINAL (V3.8) ---
+const TILE = 40;
+const PALETTE = {
+    cannon: '#ff9100', bow: '#00e676', mortar: '#f50057', ice: '#00b0ff', 
+    electro: '#d500f9', laser: '#ff00cc', sniper: '#76ff03', 
+    minigun: '#2979ff', plasma: '#ff3d00', titan: '#ffd700'
+};
+
+const TOWER_DATA = {
+    cannon: { 
+        name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, 
+        cost: 60, dmg: 12, range: 3*TILE, rate: 45, 
+        desc: "Daño directo básico y económico. Eficiencia decreciente al tener más de 5 unidades.", 
+        upgrades: [
+            {cost:40, text:"+5 Daño"},
+            {cost:60, text:"+10 Daño"},
+            {cost:80, text:"+1 Rango y +10 Daño"},
+            {cost:250, text:"ULTIMATE: Munición Explosiva (Splash Pequeño)"} 
+        ] 
+    },
+    bow: { 
+        name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, 
+        cost: 120, dmg: 6, range: 4*TILE, rate: 20, 
+        desc: "Disparo muy veloz con probabilidad de crítico (x2 Daño).", 
+        upgrades: [
+            {cost:80, text:"+20% Velocidad de Ataque"},
+            {cost:100, text:"+2 Daño Base"},
+            {cost:150, text:"Perforante (Atraviesa 1 enemigo)"},
+            {cost:400, text:"ULTIMATE: Triple Shot (Dispara 3 flechas)"} 
+        ] 
+    },
+    ice: { 
+        name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, 
+        cost: 110, dmg: 6, range: 3*TILE, rate: 45, 
+        desc: "Aplica ralentización a los enemigos. Esencial para control.", 
+        upgrades: [
+            {cost:100, text:"+2s Duración del efecto"},
+            {cost:150, text:"+1 Rango"},
+            {cost:180, text:"Slow Mejorado (70% reducción)"},
+            {cost:350, text:"ULTIMATE: Zero Absoluto (Congela enemigos)"} 
+        ] 
+    },
+    mortar: { 
+        name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, 
+        cost: 200, dmg: 25, range: 5*TILE, rate: 90, splash: 2*TILE, 
+        desc: "Dispara proyectiles parabólicos con gran daño de área.", 
+        upgrades: [
+            {cost:120, text:"+Área de Explosión"},
+            {cost:180, text:"+20 Daño"},
+            {cost:200, text:"Recarga -20%"},
+            {cost:650, text:"ULTIMATE: Nuke (Área Masiva +200 Daño)"} 
+        ] 
+    },
+    electro: { 
+        name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, 
+        cost: 220, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, 
+        desc: "Ataque eléctrico que rebota entre múltiples enemigos.", 
+        upgrades: [
+            {cost:150, text:"+1 Salto de cadena"},
+            {cost:200, text:"+8 Daño"},
+            {cost:300, text:"+2 Saltos extra"},
+            {cost:700, text:"ULTIMATE: Tormenta (8 Saltos, +25% Daño)"} 
+        ] 
+    },
+    laser: { 
+        name: "Láser", symbol: "🧿", type: "laser", color: PALETTE.laser, 
+        cost: 180, dmg: 3, range: 4*TILE, rate: 4, 
+        desc: "Rayo constante. Daño sostenido muy rápido.", 
+        upgrades: [
+            {cost:200, text:"+1 Daño Base"},
+            {cost:250, text:"+1 Rango"},
+            {cost:300, text:"Quemadura (Daño en el tiempo)"},
+            {cost:650, text:"ULTIMATE: Disintegrator (Ignora Armadura, Mayor DPS)"} 
+        ] 
+    },
+    sniper: { 
+        name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, 
+        cost: 450, dmg: 300, range: 9*TILE, rate: 150, 
+        desc: "Alcance extremo y daño masivo a un solo objetivo.", 
+        upgrades: [
+            {cost:250, text:"+100 Daño"},
+            {cost:400, text:"Perforante (Atraviesa 3 enemigos)"},
+            {cost:500, text:"Recarga -25%"},
+            {cost:1500, text:"ULTIMATE: One-Shot (+600 Daño, Perforación x8)"} 
+        ] 
+    },
+    minigun: { 
+        name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, 
+        cost: 500, dmg: 11, range: 4*TILE, rate: 5, 
+        desc: "Metralleta pesada. Velocidad de disparo extrema.", 
+        upgrades: [
+            {cost:600, text:"+4 Daño Base"},
+            {cost:900, text:"+1 Rango"},
+            {cost:1200, text:"Precisión (Daño x1.1)"},
+            {cost:3500, text:"ULTIMATE: Bullet Hell (Doble Cañón)"} 
+        ] 
+    },
+    plasma: { 
+        name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, 
+        cost: 350, dmg: 7, range: 3.5*TILE, rate: 6, splash: 1.65*TILE, 
+        desc: "Torre legendaria. Área de daño constante alrededor del impacto.", 
+        upgrades: [
+            {cost:900, text:"+Área 20%"},
+            {cost:1000, text:"+30 Daño (DPS)"},
+            {cost:1200, text:"Napalm (Quemadura)"},
+            {cost:3000, text:"ULTIMATE: Supernova (x2.25 Daño, Área Gigante)"} 
+        ] 
+    },
+    titan: { 
+        name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, 
+        cost: 2000, dmg: 600, range: 7*TILE, rate: 120, splash: 3*TILE, 
+        desc: "El arma definitiva. Daño colosal con probabilidad de crítico x3.", 
+        upgrades: [
+            {cost:2500, text:"+600 Daño"},
+            {cost:3500, text:"Rango Global"},
+            {cost:5000, text:"Recarga -30%"},
+            {cost:15000, text:"ULTIMATE: APOCALIPSIS (6000 Daño)"} 
+        ] 
+    }
+};
+
+// --- RENDER SYSTEM FOR PREVIEWS ---
+function drawTowerPreview(ctx, key) {
+    const data = TOWER_DATA[key];
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    const cx = w/2;
+    const cy = h/2;
+    
+    // Clear
+    ctx.clearRect(0,0,w,h);
+    
+    // Animate
+    const time = Date.now() * 0.002;
+    const angle = Math.sin(time) * 0.5 - Math.PI/2;
+    const scale = 1.0 + (Math.sin(time*4) > 0.8 ? 0.1 : 0); // Simulated recoil pulse
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    
+    // Base
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
+    
+    // Color Indicator
+    ctx.fillStyle = data.color;
+    
+    // Rotate Turret
+    ctx.rotate(angle);
+    ctx.scale(scale, scale);
+
+    // Draw Shape
+    ctx.shadowBlur = 10; ctx.shadowColor = data.color;
+    
+    if(key === 'cannon' || key === 'mortar' || key === 'plasma') { 
+        ctx.fillRect(-12,-12,24,24); 
+        ctx.fillStyle = '#111'; ctx.fillRect(0,-4,24,8); 
+        ctx.strokeStyle = data.color; ctx.strokeRect(-12,-12,24,24);
+    }
+    else if (key === 'bow' || key === 'sniper') { 
+        ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,12); ctx.lineTo(-5,0); ctx.lineTo(-10,-12); ctx.fill(); 
+        if(key === 'sniper') { ctx.fillStyle='#111'; ctx.fillRect(0,-1,25,2); } 
+    }
+    else if (key === 'minigun') {
+        ctx.fillRect(-10,-10,20,20);
+        ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3);
+    }
+    else if (key === 'laser') {
+        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-8, 8); ctx.lineTo(-8, -8); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(-4, -2, 8, 4); 
+    }
+    else if (key === 'titan') {
+        ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+    }
+    else { 
+        ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); 
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5,0,3,0,Math.PI*2); ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+// --- UI GENERATION ---
+const navList = document.getElementById('nav-list');
+const mainContent = document.getElementById('main-content');
+const activeCanvases = {}; // Store canvas references to animate them
+
+// Generate Navigation
+Object.keys(TOWER_DATA).forEach(key => {
+    const t = TOWER_DATA[key];
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.innerHTML = `<span class="tower-dot" style="background:${t.color}"></span> ${t.name}`;
+    btn.onclick = () => loadTower(key, btn);
+    navList.appendChild(btn);
+});
+
+// Load first tower automatically
+setTimeout(() => loadTower('cannon', navList.children[1]), 100);
+
+function loadTower(key, btnElement) {
+    // Update Active Class
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    if(btnElement) btnElement.classList.add('active');
+
+    const t = TOWER_DATA[key];
+    
+    // Calculate DPS (Approx)
+    const shotsPerSec = 60 / t.rate;
+    const dps = (t.dmg * shotsPerSec).toFixed(1);
+
+    const html = `
+        <div class="card">
+            <div class="header-row">
+                <canvas id="preview-${key}" class="preview-canvas" width="100" height="100"></canvas>
+                <div class="title-block">
+                    <h1 style="color:${t.color}">${t.name}</h1>
+                    <div class="subtitle">${t.desc}</div>
+                    <div class="cost-badge">$${t.cost}</div>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-val" style="color:#ff5252">${t.dmg}</span>
+                    <span class="stat-label">Daño / Tiro</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val" style="color:#448aff">${shotsPerSec.toFixed(2)}</span>
+                    <span class="stat-label">Disparos / s</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val" style="color:#69f0ae">${(t.range/TILE).toFixed(1)}</span>
+                    <span class="stat-label">Rango (Tiles)</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val" style="color:#ffd740">${dps}</span>
+                    <span class="stat-label">DPS Base</span>
+                </div>
+            </div>
+
+            <h2>MEJORAS DISPONIBLES</h2>
+            <div class="upgrade-list">
+                ${t.upgrades.map((upg, i) => `
+                    <div class="upgrade-item ${i===3 ? 'ultimate' : ''}">
+                        <div class="upg-lvl">NIVEL ${i+2}</div>
+                        <div class="upg-desc">${upg.text}</div>
+                        <div class="upg-cost">$${upg.cost}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    mainContent.innerHTML = html;
+
+    // Start Animation for this specific canvas
+    const canvas = document.getElementById(`preview-${key}`);
+    const ctx = canvas.getContext('2d');
+    
+    // Stop previous loop if simple global (for this example we just run a loop that draws current active)
+    activeKey = key;
+    activeCtx = ctx;
+}
+
+let activeKey = null;
+let activeCtx = null;
+
+// Global Animation Loop
+function animate() {
+    requestAnimationFrame(animate);
+    if(activeKey && activeCtx) {
+        drawTowerPreview(activeCtx, activeKey);
+    }
+}
+animate();
+
+</script>
+</body>
+</html>
