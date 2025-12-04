@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.4 (Juicy)</title>
+    <title>TowerDefense - Neon Zombie V3.5 (Perfect)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -386,8 +386,8 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.4</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">JUICY EDITION</div>
+        <div class="title-big">NEON DEFENSE V3.5</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">PERFECT EDITION</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -587,9 +587,9 @@ const TOWER_DATA = {
     
     // --- TIERS AVANZADOS ---
     laser: { 
-        name: "Prisma", symbol: "🧿", type: "laser", color: PALETTE.laser, 
-        cost: 180, dmg: 3, range: 4*TILE, rate: 4, // 15 disparos/seg (4 frames) -> 45 DPS
-        desc: "Daño continuo.", 
+        name: "Láser", symbol: "🧿", type: "laser", color: PALETTE.laser, 
+        cost: 180, dmg: 3, range: 4*TILE, rate: 4, // 15 disparos/seg -> 45 DPS (Muy eficiente por coste)
+        desc: "Daño continuo rápido.", 
         upgrades: [
             {cost:200, text:"+1 Daño Base", apply:(t)=>t.dmg+=1},
             {cost:250, text:"+1 Rango", apply:(t)=>t.range+=TILE},
@@ -954,8 +954,16 @@ class Tower extends Entity {
             if(this.multiShot > 0) ctx.fillRect(5, -9, 15, 3);
         }
         else if (this.key === 'laser') {
-            ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-5,8); ctx.lineTo(-5,-8); ctx.fill();
-            ctx.fillStyle = '#fff'; ctx.fillRect(0,-1,10,2);
+            // New Balanced & Centered Laser Design
+            ctx.beginPath(); 
+            // Main triangle body (centered on X)
+            ctx.moveTo(10, 0); 
+            ctx.lineTo(-8, 8); 
+            ctx.lineTo(-8, -8); 
+            ctx.fill();
+            // Core detail
+            ctx.fillStyle = '#fff'; 
+            ctx.fillRect(-4, -2, 8, 4); 
         }
         else if (this.key === 'titan') {
             ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
@@ -1342,12 +1350,11 @@ const Game = {
             canvas.className = 'shop-icon-canvas';
             const ctx = canvas.getContext('2d');
             
-            // Draw dummy tower
-            ctx.save();
-            ctx.translate(20, 20); // Center in canvas
-            const dummy = new Tower(0, 0, key); // Use dummy args
-            dummy.draw(ctx);
-            ctx.restore();
+            // Draw dummy tower CENTERED
+            const dummy = new Tower(0, 0, key); 
+            dummy.dummy = true; 
+            dummy.angle = -Math.PI/2; 
+            dummy.draw(ctx); 
 
             div.appendChild(canvas);
             
