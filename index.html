@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.6 (Health Text)</title>
+    <title>TowerDefense - Neon Zombie V3.7 (Auto Wave)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -161,7 +161,7 @@
             align-items: center;
             padding: 0 20px;
         }
-        .auth-bar > * { pointer-events: auto; } /* Re-enable clicks on buttons */
+        .auth-bar > * { pointer-events: auto; }
 
         #user-display {
             color: var(--text-main);
@@ -196,7 +196,7 @@
             border-right: 1px solid var(--border-color);
             border-left: 1px solid var(--border-color);
             padding: 15px;
-            padding-top: 60px; /* FIX: Added padding to avoid overlap with auth bar */
+            padding-top: 60px;
             transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 10;
         }
@@ -289,6 +289,17 @@
         .shop-name { font-size: 1rem; font-weight: bold; color: white; }
         .shop-cost { font-size: 0.85rem; color: var(--gold); display: flex; align-items: center; gap: 4px; }
         .shop-cost::before { content: '⚡'; font-size: 0.7rem; }
+
+        /* PROGRESS BAR AUTO START */
+        #auto-start-container {
+            width: 100%; height: 6px; background: #222; border: 1px solid #333;
+            border-radius: 3px; overflow: hidden; margin-bottom: 8px; display: none;
+        }
+        #auto-start-bar {
+            height: 100%; background: var(--accent); width: 100%;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--accent);
+        }
 
         /* OVERLAY SCREENS */
         #global-overlay {
@@ -386,8 +397,8 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.6</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">PERFECT EDITION</div>
+        <div class="title-big">NEON DEFENSE V3.7</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">AUTO WAVE EDITION</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -449,7 +460,11 @@
         <div class="shop-grid" id="shop-container"></div>
         <div id="wave-panel">
             <div id="wave-info">Esperando inicio...</div>
-            <button id="start-btn" class="btn btn-start" onclick="Game.nextWave()">INICIAR OLEADA</button>
+            <!-- Auto Start Bar -->
+            <div id="auto-start-container">
+                <div id="auto-start-bar"></div>
+            </div>
+            <button id="start-btn" class="btn btn-start" onclick="Game.clickStartBtn()">INICIAR OLEADA</button>
             <div style="display:flex; gap:5px; margin-top:10px;">
                 <button class="btn" style="flex:1; background:#222;" onclick="Game.toggleSpeed()" id="speed-btn">Velocidad: x1</button>
             </div>
@@ -820,9 +835,7 @@ class Enemy extends Entity {
 
 class Tower extends Entity {
     constructor(c, r, type) {
-        // Support direct x,y instantiation for shop preview
         if (typeof type === 'undefined') {
-            // Assume c=x, r=y, type=type (args shifted) for shop dummy
             super(c, r);
             this.key = arguments[2];
             this.dummy = true;
@@ -844,8 +857,6 @@ class Tower extends Entity {
         this.slowDur = data.slowDur || 0;
         
         this.efficiency = 1.0; 
-        
-        // Juicy Stats
         this.shootScale = 1.0;
     }
     upgrade() {
@@ -857,7 +868,13 @@ class Tower extends Entity {
     }
     update() {
         if(this.recoil > 0) this.recoil *= 0.8;
-        if(this.shootScale > 1.0) this.shootScale += (1.0 - this.shootScale) * 0.2; // Return to normal size
+        
+        // FIX: Ensure shootScale returns to 1.0 smoothly and certainly
+        if(this.shootScale > 1.0) {
+            this.shootScale += (1.0 - this.shootScale) * 0.2; 
+            if(this.shootScale < 1.01) this.shootScale = 1.0;
+        }
+
         if(this.cooldown > 0) this.cooldown--;
         
         let effectiveRate = this.rate;
@@ -889,7 +906,6 @@ class Tower extends Entity {
     }
     shoot(target) {
         AudioEngine.play('shoot');
-        // Muzzle Flash
         Game.addJuice('muzzle', this.x + Math.cos(this.angle)*20, this.y + Math.sin(this.angle)*20, 0, this.color);
 
         if(this.key === 'electro') this.doChainLightning(target);
@@ -928,24 +944,20 @@ class Tower extends Entity {
         ctx.save(); 
         ctx.translate(this.x, this.y);
         
-        // Base
         ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
         
-        // Level Indicators
         ctx.fillStyle = this.level >= 4 ? '#ffd700' : this.color; 
         if (!this.dummy) {
             for(let i=0; i<this.level; i++) { ctx.beginPath(); ctx.arc(-10 + i*7, -18, 2, 0, Math.PI*2); ctx.fill(); }
         }
 
-        // Turret Rotation & Juice Scale
         ctx.rotate(this.angle); 
         ctx.translate(-this.recoil, 0);
-        if(this.shootScale > 1.0) ctx.scale(this.shootScale, this.shootScale * 0.8); // Squash effect
+        if(this.shootScale > 1.0) ctx.scale(this.shootScale, this.shootScale * 0.8);
 
         ctx.shadowBlur = this.isUlt ? 15 : 5; ctx.shadowColor = this.color; ctx.fillStyle = this.color;
 
-        // --- TOWER SHAPES ---
         if(this.key === 'cannon' || this.key === 'mortar' || this.key === 'plasma') { 
             ctx.fillRect(-12,-12,24,24); 
             ctx.fillStyle = '#111'; ctx.fillRect(0,-4,24,8); 
@@ -961,14 +973,11 @@ class Tower extends Entity {
             if(this.multiShot > 0) ctx.fillRect(5, -9, 15, 3);
         }
         else if (this.key === 'laser') {
-            // New Balanced & Centered Laser Design
             ctx.beginPath(); 
-            // Main triangle body (centered on X)
             ctx.moveTo(10, 0); 
             ctx.lineTo(-8, 8); 
             ctx.lineTo(-8, -8); 
             ctx.fill();
-            // Core detail
             ctx.fillStyle = '#fff'; 
             ctx.fillRect(-4, -2, 8, 4); 
         }
@@ -984,7 +993,6 @@ class Tower extends Entity {
         
         ctx.restore();
 
-        // Draw Efficiency Penalty Text
         if(!this.dummy && this.efficiency < 1.0) {
             ctx.fillStyle = '#ff2a6d';
             ctx.font = 'bold 10px sans-serif';
@@ -1097,6 +1105,11 @@ const Game = {
     spawnTimer: 0, playing: false, speed: 1, shake: 0, 
     selectedTower: null, frames: 0,
     map: ZOMBIE_MAP, waypoints: [],
+    
+    // Auto Start Logic
+    autoStartTimer: 0,
+    autoStartMax: 600, // 10s at 60fps
+    isAutoStarting: false,
 
     init() {
         this.renderShop();
@@ -1121,6 +1134,12 @@ const Game = {
         this.wave = 1;
         this.enemies = []; this.towers = []; this.projectiles = []; this.particles = [];
         this.waveQueue = [];
+        
+        // Reset Auto Start
+        this.isAutoStarting = false;
+        this.autoStartTimer = 0;
+        this.updateAutoStartUI();
+        
         this.updateUI();
     },
 
@@ -1131,6 +1150,11 @@ const Game = {
         this.playing = false;
         this.towers = [];
         document.getElementById('save-msg').innerText = "";
+        
+        // Reset Auto Start
+        this.isAutoStarting = false;
+        this.autoStartTimer = 0;
+        this.updateAutoStartUI();
     },
 
     loop() {
@@ -1151,6 +1175,24 @@ const Game = {
             }
         }
 
+        // --- CHECK WAVE END FOR AUTO START ---
+        if (this.waveQueue.length === 0 && this.enemies.length === 0 && this.playing) {
+            // If the start button is currently disabled, it means we just finished fighting
+            const btn = document.getElementById('start-btn');
+            if (btn.disabled && !this.isAutoStarting) {
+                this.startAutoWaveTimer();
+            }
+        }
+
+        // --- AUTO START COUNTDOWN ---
+        if (this.isAutoStarting) {
+            this.autoStartTimer -= 1; 
+            this.updateAutoStartUI();
+            if (this.autoStartTimer <= 0) {
+                this.nextWave();
+            }
+        }
+
         this.towers.forEach(t => t.update());
         this.enemies.forEach(e => e.update());
         this.projectiles.forEach(p => p.update());
@@ -1161,14 +1203,6 @@ const Game = {
         this.projectiles = this.projectiles.filter(p => !p.dead);
         this.particles = this.particles.filter(p => p.life > 0);
 
-        const btn = document.getElementById('start-btn');
-        if (this.waveQueue.length === 0 && this.enemies.length === 0) {
-            if(btn.disabled) {
-                btn.disabled = false;
-                btn.innerText = "SIGUIENTE OLEADA";
-                document.getElementById('wave-info').innerText = "Sector despejado.";
-            }
-        }
         const totalEnemies = this.enemies.length + this.waveQueue.length;
         document.getElementById('enemies-display').innerText = totalEnemies;
         if(this.shake > 0) { this.shake *= 0.9; if(this.shake < 0.5) this.shake = 0; }
@@ -1246,9 +1280,66 @@ const Game = {
             }
         } 
     },
+    
+    // --- AUTO START SYSTEM ---
+    startAutoWaveTimer() {
+        this.isAutoStarting = true;
+        this.autoStartTimer = this.autoStartMax;
+        document.getElementById('start-btn').disabled = false; // Enable for pausing
+        document.getElementById('wave-info').innerText = "Siguiente oleada en...";
+        document.getElementById('auto-start-container').style.display = 'block';
+        this.updateAutoStartUI();
+    },
+    
+    updateAutoStartUI() {
+        const bar = document.getElementById('auto-start-bar');
+        const btn = document.getElementById('start-btn');
+        
+        if (this.isAutoStarting) {
+            const pct = (this.autoStartTimer / this.autoStartMax) * 100;
+            bar.style.width = pct + '%';
+            // Show pause button
+            const seconds = Math.ceil(this.autoStartTimer / 60);
+            btn.innerText = `PAUSAR (${seconds}s)`;
+            btn.style.borderColor = '#ff2a6d';
+            btn.style.color = '#ff2a6d';
+        } else {
+            // Hidden / Reset
+            document.getElementById('auto-start-container').style.display = 'none';
+            // Reset button style to default if wave ended and we are waiting
+            if (this.waveQueue.length === 0 && this.enemies.length === 0) {
+                btn.innerText = "INICIAR OLEADA";
+                btn.style.borderColor = '#0288d1';
+                btn.style.color = '#81d4fa';
+            }
+        }
+    },
+
+    clickStartBtn() {
+        // This function handles the button click depending on state
+        if (this.isAutoStarting) {
+            // PAUSE ACTION
+            this.isAutoStarting = false;
+            this.autoStartTimer = 0;
+            document.getElementById('wave-info').innerText = "Inicio Pausado";
+            this.updateAutoStartUI();
+        } else {
+            // START ACTION
+            this.nextWave();
+        }
+    },
+
     nextWave() {
+        // Reset Auto Start State
+        this.isAutoStarting = false;
+        this.autoStartTimer = 0;
+        this.updateAutoStartUI();
+
         document.getElementById('start-btn').disabled = true; 
         document.getElementById('start-btn').innerText = "COMBATIENDO...";
+        document.getElementById('start-btn').style.borderColor = '#0288d1';
+        document.getElementById('start-btn').style.color = '#81d4fa';
+
         this.wave++;
         const count = 6 + Math.floor(this.wave * 1.8);
         this.waveQueue = [];
