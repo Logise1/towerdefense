@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.3 (Apocalypse)</title>
+    <title>TowerDefense - Neon Zombie V3.4 (Juicy)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -150,6 +150,42 @@
             overflow: hidden;
         }
 
+        /* --- UI OVERLAP FIXES --- */
+        .auth-bar {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 50px;
+            pointer-events: none; /* Let clicks pass through */
+            z-index: 2005;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .auth-bar > * { pointer-events: auto; } /* Re-enable clicks on buttons */
+
+        #user-display {
+            color: var(--text-main);
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-shadow: 0 0 5px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.6);
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #444;
+        }
+
+        .btn-auth { 
+            background: rgba(0,0,0,0.8); 
+            border: 1px solid var(--accent); 
+            color: var(--accent); 
+            padding: 8px 16px; 
+            cursor: pointer;
+            font-family: 'Rajdhani';
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-auth:hover { background: var(--accent); color: #000; }
+
         /* --- SIDEBARS --- */
         .sidebar {
             width: 300px;
@@ -160,6 +196,7 @@
             border-right: 1px solid var(--border-color);
             border-left: 1px solid var(--border-color);
             padding: 15px;
+            padding-top: 60px; /* FIX: Added padding to avoid overlap with auth bar */
             transition: transform 0.3s ease, opacity 0.3s ease;
             z-index: 10;
         }
@@ -235,8 +272,6 @@
         .btn-ult { background: linear-gradient(180deg, #4a148c, #260a46); border-color: #7b1fa2; color: #e1bee7; box-shadow: 0 0 10px rgba(123, 31, 162, 0.4); }
         .btn-sell { background: linear-gradient(180deg, #b71c1c, #680f0f); border-color: #ef5350; margin-top: 5px; }
         .btn-start { background: linear-gradient(180deg, #01579b, #002f55); border-color: #0288d1; width: 100%; color: #81d4fa; letter-spacing: 1px;}
-        .btn-auth { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; position: absolute; top: 20px; right: 20px; z-index: 2001; }
-        .btn-auth:hover { background: var(--accent); color: #000; }
 
         /* SHOP */
         .shop-grid { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-right: 5px; }
@@ -245,10 +280,10 @@
             padding: 8px; border-radius: 6px; border: 1px solid #333; cursor: pointer; transition: 0.2s; 
         }
         .shop-item:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); }
-        .shop-icon { 
-            width: 36px; height: 36px; border-radius: 4px; margin-right: 12px; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5); border: 1px solid #555; 
-            display: flex; justify-content: center; align-items: center; font-size: 1.2rem;
+        .shop-icon-canvas {
+            width: 40px; height: 40px; margin-right: 12px;
+            background: #111; border: 1px solid #444; border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
         .shop-info { flex: 1; display: flex; flex-direction: column; }
         .shop-name { font-size: 1rem; font-weight: bold; color: white; }
@@ -343,14 +378,16 @@
 
 <div id="game-wrapper">
     
-    <!-- AUTH BUTTON -->
-    <button id="btn-auth-main" class="btn btn-auth">LOGIN / REGISTRO</button>
-    <div id="user-display" style="position: absolute; top: 20px; left: 20px; color: var(--text-main); font-weight: bold; z-index: 2001; display: none;"></div>
+    <!-- AUTH BAR (Top Layer) -->
+    <div class="auth-bar">
+        <div id="user-display" style="display: none;"></div>
+        <button id="btn-auth-main" class="btn btn-auth">LOGIN / REGISTRO</button>
+    </div>
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.3</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">APOCALYPSE EDITION</div>
+        <div class="title-big">NEON DEFENSE V3.4</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">JUICY EDITION</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -629,8 +666,7 @@ const AudioEngine = {
         const now = this.ctx.currentTime;
         
         if(type === 'shoot') {
-            // New Satisfying Shoot Sound
-            osc.type = 'square'; // More "8-bit" impact
+            osc.type = 'square'; 
             osc.frequency.setValueAtTime(400 + Math.random()*100, now);
             osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
             gain.gain.setValueAtTime(0.05, now); 
@@ -656,7 +692,6 @@ class Enemy extends Entity {
         const waveMult = 1 + (Game.wave * 0.35); 
         this.maxHp = Math.floor(data.hp * waveMult);
         if(type === 'boss') this.maxHp = Math.floor(this.maxHp * 2.5);
-        // White boss scaling is handled in base stats
         this.hp = this.maxHp;
         this.speedBase = data.speed;
         this.speed = this.speedBase;
@@ -677,7 +712,6 @@ class Enemy extends Entity {
     update() {
         if(this.freezeTimer > 0) { 
             this.totalFrozen++; 
-            // NERF: Si supera 2 segundos (60 frames * 2), se rompe el hielo y gana inmunidad
             if (this.totalFrozen >= 120) { 
                 this.freezeTimer = 0; 
             } else {
@@ -721,18 +755,17 @@ class Enemy extends Entity {
         if(this.immune) return;
         if(effect === 'slow') { this.slowTimer = duration; this.slowFactor = strength; }
         if(effect === 'freeze') { 
-            if (this.totalFrozen >= 120) return; // 2s Cap
+            if (this.totalFrozen >= 120) return; 
             this.freezeTimer = duration; 
         }
         if(effect === 'burn') {
             if(!this.burnTimer) {
                 this.burnTimer = duration;
                 this.burnDmg = 0;
-                // Simple burn tick logic
                 const burnInt = setInterval(() => {
                     if(this.dead) clearInterval(burnInt);
                     if(this.burnTimer > 0) {
-                        this.hp -= 2; // Quemadura standard
+                        this.hp -= 2; 
                         this.burnTimer -= 10;
                     } else clearInterval(burnInt);
                 }, 200);
@@ -755,14 +788,12 @@ class Enemy extends Entity {
         
         ctx.beginPath();
         if(this.immune) { 
-            // Triangle/Diamond shape for immune/bosses
             ctx.moveTo(0, -this.radius); ctx.lineTo(this.radius, 0); ctx.lineTo(0, this.radius); ctx.lineTo(-this.radius, 0); 
         } 
         else if (this.radius > 15) { ctx.arc(0,0,this.radius, 0, Math.PI*2); } 
         else { ctx.arc(0,0,this.radius,0,Math.PI*2); }
         ctx.fill();
         
-        // White boss decoration
         if(this.isWhite) {
             ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
         }
@@ -782,9 +813,18 @@ class Enemy extends Entity {
 
 class Tower extends Entity {
     constructor(c, r, type) {
-        super(c*TILE + TILE/2, r*TILE + TILE/2);
-        this.c = c; this.r = r; this.key = type;
-        const data = TOWER_DATA[type];
+        // Support direct x,y instantiation for shop preview
+        if (typeof type === 'undefined') {
+            // Assume c=x, r=y, type=type (args shifted) for shop dummy
+            super(c, r);
+            this.key = arguments[2];
+            this.dummy = true;
+        } else {
+            super(c*TILE + TILE/2, r*TILE + TILE/2);
+            this.c = c; this.r = r; this.key = type;
+        }
+        
+        const data = TOWER_DATA[this.key];
         this.name = data.name; this.color = data.color; this.dmg = data.dmg;
         this.range = data.range; this.rate = data.rate; this.spent = data.cost;
         this.level = 1; this.cooldown = 0; this.angle = -Math.PI/2; this.recoil = 0;
@@ -796,7 +836,10 @@ class Tower extends Entity {
         this.slow = data.slow || 0;
         this.slowDur = data.slowDur || 0;
         
-        this.efficiency = 1.0; // For blaster spam nerf
+        this.efficiency = 1.0; 
+        
+        // Juicy Stats
+        this.shootScale = 1.0;
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
@@ -807,6 +850,7 @@ class Tower extends Entity {
     }
     update() {
         if(this.recoil > 0) this.recoil *= 0.8;
+        if(this.shootScale > 1.0) this.shootScale += (1.0 - this.shootScale) * 0.2; // Return to normal size
         if(this.cooldown > 0) this.cooldown--;
         
         let effectiveRate = this.rate;
@@ -819,6 +863,7 @@ class Tower extends Entity {
                 this.shoot(target); 
                 this.cooldown = Math.max(2, effectiveRate); 
                 this.recoil = 6;
+                this.shootScale = 1.4; // Squash & Stretch effect
             }
         }
     }
@@ -837,10 +882,12 @@ class Tower extends Entity {
     }
     shoot(target) {
         AudioEngine.play('shoot');
+        // Muzzle Flash
+        Game.addJuice('muzzle', this.x + Math.cos(this.angle)*20, this.y + Math.sin(this.angle)*20, 0, this.color);
+
         if(this.key === 'electro') this.doChainLightning(target);
         else if (this.key === 'minigun' && this.multiShot > 0) {
              for(let i=0; i<this.multiShot; i++) {
-                 // Disparo con pequeño offset aleatorio
                  Game.projectiles.push(new Projectile(this, target, this.angle + (Math.random()-0.5)*0.2));
              }
         }
@@ -871,14 +918,27 @@ class Tower extends Entity {
         }
     }
     draw(ctx) {
-        ctx.save(); ctx.translate(this.x, this.y);
+        ctx.save(); 
+        ctx.translate(this.x, this.y);
+        
+        // Base
         ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
+        
+        // Level Indicators
         ctx.fillStyle = this.level >= 4 ? '#ffd700' : this.color; 
-        for(let i=0; i<this.level; i++) { ctx.beginPath(); ctx.arc(-10 + i*7, -18, 2, 0, Math.PI*2); ctx.fill(); }
-        ctx.rotate(this.angle); ctx.translate(-this.recoil, 0);
+        if (!this.dummy) {
+            for(let i=0; i<this.level; i++) { ctx.beginPath(); ctx.arc(-10 + i*7, -18, 2, 0, Math.PI*2); ctx.fill(); }
+        }
+
+        // Turret Rotation & Juice Scale
+        ctx.rotate(this.angle); 
+        ctx.translate(-this.recoil, 0);
+        if(this.shootScale > 1.0) ctx.scale(this.shootScale, this.shootScale * 0.8); // Squash effect
+
         ctx.shadowBlur = this.isUlt ? 15 : 5; ctx.shadowColor = this.color; ctx.fillStyle = this.color;
 
+        // --- TOWER SHAPES ---
         if(this.key === 'cannon' || this.key === 'mortar' || this.key === 'plasma') { 
             ctx.fillRect(-12,-12,24,24); 
             ctx.fillStyle = '#111'; ctx.fillRect(0,-4,24,8); 
@@ -891,7 +951,7 @@ class Tower extends Entity {
         else if (this.key === 'minigun') {
             ctx.fillRect(-10,-10,20,20);
             ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3);
-            if(this.multiShot > 0) ctx.fillRect(5, -9, 15, 3); // Visual para doble cañon
+            if(this.multiShot > 0) ctx.fillRect(5, -9, 15, 3);
         }
         else if (this.key === 'laser') {
             ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-5,8); ctx.lineTo(-5,-8); ctx.fill();
@@ -910,7 +970,7 @@ class Tower extends Entity {
         ctx.restore();
 
         // Draw Efficiency Penalty Text
-        if(this.efficiency < 1.0) {
+        if(!this.dummy && this.efficiency < 1.0) {
             ctx.fillStyle = '#ff2a6d';
             ctx.font = 'bold 10px sans-serif';
             ctx.textAlign = 'center';
@@ -933,7 +993,6 @@ class Projectile extends Entity {
             this.speed = 0.02;
             if(tower.key === 'titan' && tower.isUlt) this.speed = 0.04;
         }
-        // Plasma behaves like a fast projectile now to simulate 50/s continuous fire
         if(tower.key === 'plasma') {
             this.speed = 15;
             this.vx = Math.cos(angle)*this.speed; this.vy = Math.sin(angle)*this.speed;
@@ -968,10 +1027,8 @@ class Projectile extends Entity {
         }
     }
     hitSingle(e) {
-        // Apply Efficiency Nerf
         let dmg = this.tower.dmg * (this.tower.efficiency || 1); 
         
-        // Crit Logic
         if(this.tower.critChance > 0 && Math.random() < this.tower.critChance) {
             dmg *= this.tower.critMult;
             Game.addJuice('text', e.x, e.y-20, 'CRIT!', '#ffea00');
@@ -979,22 +1036,20 @@ class Projectile extends Entity {
 
         Game.damageEnemy(e, dmg);
         
-        // Status Effects
         if(this.tower.key==='ice') { 
             if(this.tower.freeze) e.applyStatus('freeze', 60); 
             else e.applyStatus('slow', this.tower.slowDur, this.tower.slow); 
         }
         if(this.tower.burn) e.applyStatus('burn', 120, 2);
         
-        Game.addJuice('particle', this.x, this.y, 4, this.tower.color);
+        Game.addJuice('particle', this.x, this.y, 6, this.tower.color);
     }
     hitArea(x, y) {
-        Game.addJuice('explosion', x, y, this.tower.splash, this.tower.color); Game.shake = 6;
+        Game.addJuice('explosion', x, y, this.tower.splash, this.tower.color); Game.shake = 8;
         let dmg = this.tower.dmg * (this.tower.efficiency || 1);
         for(let e of Game.enemies) {
             if(Math.hypot(e.x-x, e.y-y) <= this.tower.splash) {
                 Game.damageEnemy(e, dmg);
-                // SPLASH APPLIES EFFECTS
                 if(this.tower.key==='ice') { 
                     if(this.tower.freeze) e.applyStatus('freeze', 60); 
                     else e.applyStatus('slow', this.tower.slowDur, this.tower.slow); 
@@ -1004,8 +1059,18 @@ class Projectile extends Entity {
         }
     }
     draw(ctx) { 
-        if(this.trail.length > 1) { ctx.beginPath(); ctx.strokeStyle = this.tower.color; ctx.lineWidth = this.tower.key === 'sniper' ? 1 : 2; ctx.moveTo(this.trail[0].x, this.trail[0].y + (this.z||0)); for(let p of this.trail) ctx.lineTo(p.x, p.y + (this.z||0)); ctx.stroke(); }
-        ctx.fillStyle = this.tower.color; ctx.beginPath(); ctx.arc(this.x, this.y+(this.z||0), 3, 0, Math.PI*2); ctx.fill(); 
+        if(this.trail.length > 1) { 
+            ctx.beginPath(); 
+            ctx.strokeStyle = this.tower.color; 
+            ctx.lineWidth = this.tower.key === 'sniper' ? 1 : 2; 
+            ctx.moveTo(this.trail[0].x, this.trail[0].y + (this.z||0)); 
+            for(let p of this.trail) ctx.lineTo(p.x, p.y + (this.z||0)); 
+            ctx.stroke(); 
+        }
+        ctx.fillStyle = this.tower.color; 
+        ctx.shadowBlur = 5; ctx.shadowColor = this.tower.color; // Glowy projectiles
+        ctx.beginPath(); ctx.arc(this.x, this.y+(this.z||0), 3, 0, Math.PI*2); ctx.fill(); 
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -1037,7 +1102,7 @@ const Game = {
         document.getElementById('global-overlay').classList.add('hidden');
         document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
         this.playing = true;
-        this.money = 250; // Starting money slightly increased to allow early towers
+        this.money = 250; 
         this.wave = 1;
         this.enemies = []; this.towers = []; this.projectiles = []; this.particles = [];
         this.waveQueue = [];
@@ -1122,7 +1187,21 @@ const Game = {
         this.towers.forEach(t => t.draw(ctx));
         this.projectiles.forEach(p => p.draw(ctx));
         
-        this.particles.forEach(p => { ctx.globalAlpha = p.life; if(p.type === 'text') { ctx.fillStyle = p.color||'white'; ctx.font = 'bold 16px Rajdhani'; ctx.strokeStyle = 'black'; ctx.lineWidth=2; ctx.strokeText(p.text, p.x, p.y); ctx.fillText(p.text, p.x, p.y); } else if (p.type === 'bolt') { ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke(); ctx.shadowBlur = 10; ctx.shadowColor = p.color; ctx.stroke(); ctx.shadowBlur = 0; } else if (p.type === 'ring') { ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.size*(1.5-p.life), 0, Math.PI*2); ctx.stroke(); } else { ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 3, 3); } ctx.globalAlpha = 1; });
+        this.particles.forEach(p => { 
+            ctx.globalAlpha = p.life; 
+            if(p.type === 'text') { 
+                ctx.fillStyle = p.color||'white'; ctx.font = 'bold 16px Rajdhani'; ctx.strokeStyle = 'black'; ctx.lineWidth=2; ctx.strokeText(p.text, p.x, p.y); ctx.fillText(p.text, p.x, p.y); 
+            } else if (p.type === 'bolt') { 
+                ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke(); ctx.shadowBlur = 10; ctx.shadowColor = p.color; ctx.stroke(); ctx.shadowBlur = 0; 
+            } else if (p.type === 'ring') { 
+                ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p.x, p.y, p.size*(1.5-p.life), 0, Math.PI*2); ctx.stroke(); 
+            } else if (p.type === 'muzzle') {
+                ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 6*p.life, 0, Math.PI*2); ctx.fill();
+            } else { 
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, 3, 3); 
+            } 
+            ctx.globalAlpha = 1; 
+        });
         if(this.shake > 0) ctx.restore();
     },
 
@@ -1144,7 +1223,6 @@ const Game = {
             this.playing = false; 
             document.getElementById('game-over-screen').classList.remove('hidden'); 
             document.getElementById('score-text').innerText = "OLEADAS RESISTIDAS: " + (this.wave - 1); 
-            // GUARDAR SCORE
             if(window.AuthManager.user) {
                 window.ScoreManager.saveScore(this.wave - 1, this.difficulty);
                 document.getElementById('save-msg').innerText = "PUNTUACIÓN GUARDADA EN RANKING";
@@ -1161,30 +1239,30 @@ const Game = {
         this.waveQueue = [];
         document.getElementById('wave-info').innerText = `Oleada ${this.wave} entrante...`;
         
-        // --- WAVE LOGIC UPDATE V3.3 ---
         if (this.wave >= 30) {
-            // Rondas de Apocalipsis
             const bossCount = 2 + Math.floor((this.wave - 30) / 2);
             for(let i=0; i<bossCount; i++) this.waveQueue.push('boss');
-            
-            // White Bosses (Cada 5 rondas después de la 30)
             if(this.wave % 5 === 0) {
                 this.waveQueue.push('white_boss');
             }
-            
-            // Relleno brutal
             for(let i=0; i<30; i++) {
                 if(Math.random()<0.5) this.waveQueue.push('tank'); else this.waveQueue.push('fast');
             }
         } else {
-            // Rondas normales
             if(this.wave % 5 === 0) { this.waveQueue.push('boss'); for(let i=0; i<8; i++) this.waveQueue.push('fast'); } 
             else { for(let i=0; i<count; i++) { let r = Math.random(); if(this.wave < 3) this.waveQueue.push('basic'); else if (r < 0.5) this.waveQueue.push('basic'); else if (r < 0.8) this.waveQueue.push('fast'); else if (r < 0.95) this.waveQueue.push('tank'); else this.waveQueue.push('special'); } }
         }
         
         this.updateUI();
     },
-    addJuice(type, x, y, extra1, extra2) { if(type === 'particle') for(let i=0; i<extra1; i++) this.particles.push({x:x, y:y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:1.0, decay:0.04, color:extra2}); else if (type === 'explosion') this.particles.push({x:x, y:y, size:extra1, life:1.0, decay:0.08, color:extra2, type:'ring'}); else if (type === 'text') this.particles.push({x:x, y:y, vx:0, vy:-1, life:1.0, decay:0.02, text:extra1, color:extra2, type:'text'}); else if (type === 'bolt') this.particles.push({x:x, y:y, tx:extra1, ty:extra2, life:0.2, decay:0.1, color:'#fff', type:'bolt'}); else if (type === 'ring') this.particles.push({x:x, y:y, size:extra1, life:0.5, decay:0.02, color:extra2, type:'ring'}); },
+    addJuice(type, x, y, extra1, extra2) { 
+        if(type === 'particle') for(let i=0; i<extra1; i++) this.particles.push({x:x, y:y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:1.0, decay:0.04, color:extra2}); 
+        else if (type === 'explosion') this.particles.push({x:x, y:y, size:extra1, life:1.0, decay:0.08, color:extra2, type:'ring'}); 
+        else if (type === 'text') this.particles.push({x:x, y:y, vx:0, vy:-1, life:1.0, decay:0.02, text:extra1, color:extra2, type:'text'}); 
+        else if (type === 'bolt') this.particles.push({x:x, y:y, tx:extra1, ty:extra2, life:0.2, decay:0.1, color:'#fff', type:'bolt'}); 
+        else if (type === 'ring') this.particles.push({x:x, y:y, size:extra1, life:0.5, decay:0.02, color:extra2, type:'ring'}); 
+        else if (type === 'muzzle') this.particles.push({x:x, y:y, life:1.0, decay:0.2, color:extra2, type:'muzzle'});
+    },
     upgradeTower() {
         if(!this.selectedTower) return;
         const data = TOWER_DATA[this.selectedTower.key], nextUpg = data.upgrades[this.selectedTower.level - 1];
@@ -1198,12 +1276,9 @@ const Game = {
         Game.addJuice('particle', 0, 0, 0, null);
         Game.recalcBlasterNerf();
     },
-    // --- BLASTER SPAM NERF LOGIC ---
     recalcBlasterNerf() {
         const blasters = this.towers.filter(t => t.key === 'cannon');
         const count = blasters.length;
-        // Empieza a penalizar después de la 5ª torre
-        // -10% daño por cada torre extra
         blasters.forEach(t => {
             if(count > 5) {
                 const penalty = (count - 5) * 0.1;
@@ -1260,8 +1335,29 @@ const Game = {
         Object.keys(TOWER_DATA).forEach(key => {
             const t = TOWER_DATA[key];
             const div = document.createElement('div'); div.className = 'shop-item';
-            div.innerHTML = `<div class="shop-icon" style="background:rgba(0,0,0,0.3); border-color:${t.color}; color:${t.color}">${t.symbol||'T'}</div><div class="shop-info"><span class="shop-name">${t.name}</span><span class="shop-cost">${t.cost}</span></div>`;
-            div.onmousedown = () => this.startDrag(key); container.appendChild(div);
+            
+            // Create Canvas for preview
+            const canvas = document.createElement('canvas');
+            canvas.width = 40; canvas.height = 40;
+            canvas.className = 'shop-icon-canvas';
+            const ctx = canvas.getContext('2d');
+            
+            // Draw dummy tower
+            ctx.save();
+            ctx.translate(20, 20); // Center in canvas
+            const dummy = new Tower(0, 0, key); // Use dummy args
+            dummy.draw(ctx);
+            ctx.restore();
+
+            div.appendChild(canvas);
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'shop-info';
+            infoDiv.innerHTML = `<span class="shop-name">${t.name}</span><span class="shop-cost">${t.cost}</span>`;
+            div.appendChild(infoDiv);
+
+            div.onmousedown = () => this.startDrag(key); 
+            container.appendChild(div);
         });
     },
     updateUI() {
@@ -1276,7 +1372,6 @@ const Game = {
         document.getElementById('speed-btn').style.background = this.speed === 2 ? "#00695c" : "#222";
     },
 
-    // --- FUNCIONES MODALES Y ONLINE ---
     openModal(id) { document.getElementById(id).style.display = 'flex'; },
     closeModal(id) { document.getElementById(id).style.display = 'none'; },
     submitAuth() {
@@ -1287,7 +1382,7 @@ const Game = {
     },
     openLeaderboard() {
         this.openModal('lb-modal');
-        this.loadLeaderboard(0.10); // Default medio
+        this.loadLeaderboard(0.10); 
     },
     async loadLeaderboard(diff) {
         document.getElementById('lb-content').innerText = "Cargando...";
