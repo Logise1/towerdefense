@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.5 (Perfect)</title>
+    <title>TowerDefense - Neon Zombie V3.6 (Health Text)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -386,7 +386,7 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.5</div>
+        <div class="title-big">NEON DEFENSE V3.6</div>
         <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">PERFECT EDITION</div>
         
         <div class="difficulty-container">
@@ -800,12 +800,19 @@ class Enemy extends Entity {
 
         ctx.shadowBlur = 0; 
 
-        // Health Bar
-        const w = 24, pct = Math.max(0, this.hp/this.maxHp);
-        const yOff = -this.radius - 10;
-        ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fillRect(-w/2, yOff, w, 4);
-        let hpColor = '#00ff88'; if(pct < 0.5) hpColor = '#ffcc00'; if(pct < 0.25) hpColor = '#ff2a6d';
-        ctx.fillStyle = hpColor; ctx.fillRect(-w/2, yOff, w*pct, 4);
+        // Health Number
+        const pct = Math.max(0, this.hp / this.maxHp);
+        let hpColor = '#00e676'; // Verde
+        if(pct < 0.5) hpColor = '#ffea00'; // Amarillo
+        if(pct < 0.25) hpColor = '#ff2a6d'; // Rojo
+        
+        ctx.fillStyle = hpColor;
+        ctx.font = "bold 14px 'Rajdhani', sans-serif";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "black";
+        ctx.shadowBlur = 4;
+        ctx.fillText(Math.ceil(this.hp), 0, -this.radius - 10);
+        ctx.shadowBlur = 0;
 
         ctx.restore();
     }
