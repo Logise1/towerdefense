@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V3.7 (Auto Wave)</title>
+    <title>TowerDefense - Neon Zombie V3.8 (Laser Overhaul)</title>
     <!-- Fuente Gamer -->
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     
@@ -397,8 +397,8 @@
 
     <!-- START SCREEN -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V3.7</div>
-        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">AUTO WAVE EDITION</div>
+        <div class="title-big">NEON DEFENSE V3.8</div>
+        <div style="color: #8899ac; font-size: 1.2rem; letter-spacing: 2px;">LASER & TURBO</div>
         
         <div class="difficulty-container">
             <button class="btn-diff diff-easy" onclick="Game.start(0.05)">FÁCIL (+5%)</button>
@@ -672,8 +672,47 @@ const ENEMY_DATA = {
 
 const AudioEngine = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
+    laserOsc: null,
+    laserGain: null,
+    
+    initLaser() {
+        if(this.laserOsc) return;
+        this.laserOsc = this.ctx.createOscillator();
+        this.laserGain = this.ctx.createGain();
+        this.laserOsc.type = 'sawtooth';
+        this.laserOsc.frequency.value = 100; // Low hum
+        
+        // Lowpass filter to make it sound like energy
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 300; 
+
+        this.laserOsc.connect(filter);
+        filter.connect(this.laserGain);
+        this.laserGain.connect(this.ctx.destination);
+        this.laserGain.gain.value = 0;
+        this.laserOsc.start();
+    },
+
+    setLaserVolume(activeCount) {
+        if(!this.laserGain) this.initLaser();
+        const now = this.ctx.currentTime;
+        // Volume scales with active lasers, capped at 0.3
+        const targetVol = Math.min(0.3, activeCount * 0.05); 
+        this.laserGain.gain.setTargetAtTime(targetVol, now, 0.1); 
+        
+        // Pitch modulation based on intensity
+        if(activeCount > 0) {
+             this.laserOsc.frequency.setTargetAtTime(100 + (activeCount*10), now, 0.1);
+        }
+    },
+
     play(type) {
-        if(this.ctx.state === 'suspended') this.ctx.resume();
+        if(this.ctx.state === 'suspended') {
+            this.ctx.resume();
+            this.initLaser(); // Init laser on first interaction
+        }
+        
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.connect(gain);
@@ -858,6 +897,8 @@ class Tower extends Entity {
         
         this.efficiency = 1.0; 
         this.shootScale = 1.0;
+        this.isFiring = false; // For laser sound
+        this.target = null; // Store target for laser drawing
     }
     upgrade() {
         const data = TOWER_DATA[this.key], upg = data.upgrades[this.level - 1];
@@ -869,7 +910,6 @@ class Tower extends Entity {
     update() {
         if(this.recoil > 0) this.recoil *= 0.8;
         
-        // FIX: Ensure shootScale returns to 1.0 smoothly and certainly
         if(this.shootScale > 1.0) {
             this.shootScale += (1.0 - this.shootScale) * 0.2; 
             if(this.shootScale < 1.01) this.shootScale = 1.0;
@@ -877,18 +917,37 @@ class Tower extends Entity {
 
         if(this.cooldown > 0) this.cooldown--;
         
-        let effectiveRate = this.rate;
-        
-        if(this.cooldown <= 0) {
-            const target = this.findTarget();
-            if(target) {
-                const targetAngle = Math.atan2(target.y-this.y, target.x-this.x);
-                this.angle = targetAngle;
-                this.shoot(target); 
-                this.cooldown = Math.max(2, effectiveRate); 
-                this.recoil = 6;
-                this.shootScale = 1.4; // Squash & Stretch effect
+        this.target = this.findTarget();
+
+        if(this.target) {
+            const targetAngle = Math.atan2(this.target.y-this.y, this.target.x-this.x);
+            this.angle = targetAngle;
+
+            if (this.key === 'laser') {
+                // --- CONTINUOUS LASER LOGIC ---
+                this.isFiring = true;
+                if (this.cooldown <= 0) {
+                    // Apply Damage Tick
+                    let dmg = this.dmg * (this.efficiency || 1);
+                    Game.damageEnemy(this.target, dmg);
+                    Game.addJuice('particle', this.target.x, this.target.y, 1, this.color); 
+                    if(this.burn) this.target.applyStatus('burn', 60, 2);
+                    
+                    this.cooldown = this.rate; // Reset tick timer
+                }
+            } else {
+                // --- PROJECTILE LOGIC ---
+                this.isFiring = false; 
+                if (this.cooldown <= 0) {
+                    this.shoot(this.target); 
+                    let effectiveRate = this.rate; 
+                    this.cooldown = Math.max(2, effectiveRate); 
+                    this.recoil = 6;
+                    this.shootScale = 1.4; 
+                }
             }
+        } else {
+            this.isFiring = false;
         }
     }
     findTarget() { 
@@ -944,9 +1003,11 @@ class Tower extends Entity {
         ctx.save(); 
         ctx.translate(this.x, this.y);
         
+        // Base
         ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
         
+        // Level Indicators
         ctx.fillStyle = this.level >= 4 ? '#ffd700' : this.color; 
         if (!this.dummy) {
             for(let i=0; i<this.level; i++) { ctx.beginPath(); ctx.arc(-10 + i*7, -18, 2, 0, Math.PI*2); ctx.fill(); }
@@ -992,6 +1053,40 @@ class Tower extends Entity {
         }
         
         ctx.restore();
+
+        // --- DRAW LASER BEAM ---
+        if(this.key === 'laser' && this.isFiring && this.target && !this.target.dead && !this.dummy) {
+            const dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            
+            // Outer Glow
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = this.color;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 4 + Math.sin(Game.frames * 0.5) * 2; // Pulsing effect
+            ctx.beginPath();
+            ctx.moveTo(10, 0);
+            ctx.lineTo(dist, 0);
+            ctx.stroke();
+            
+            // Inner Core
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(10, 0);
+            ctx.lineTo(dist, 0);
+            ctx.stroke();
+            
+            // Hit Effect
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(dist, 0, 4 + Math.random()*3, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.restore();
+        }
 
         if(!this.dummy && this.efficiency < 1.0) {
             ctx.fillStyle = '#ff2a6d';
@@ -1193,7 +1288,14 @@ const Game = {
             }
         }
 
-        this.towers.forEach(t => t.update());
+        // Update Laser Audio
+        let lasersFiring = 0;
+        this.towers.forEach(t => {
+            t.update();
+            if(t.key === 'laser' && t.isFiring) lasersFiring++;
+        });
+        AudioEngine.setLaserVolume(lasersFiring);
+
         this.enemies.forEach(e => e.update());
         this.projectiles.forEach(p => p.update());
         
