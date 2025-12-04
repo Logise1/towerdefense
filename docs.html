@@ -31,7 +31,7 @@
 
         /* SIDEBAR */
         nav {
-            width: 250px;
+            width: 260px;
             background: var(--panel-bg);
             border-right: 1px solid var(--border);
             padding: 20px;
@@ -39,6 +39,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+            flex-shrink: 0;
         }
 
         .nav-header {
@@ -57,7 +58,7 @@
             background: transparent;
             border: 1px solid transparent;
             color: var(--text-muted);
-            padding: 10px 15px;
+            padding: 12px 15px;
             text-align: left;
             cursor: pointer;
             font-family: inherit;
@@ -80,6 +81,7 @@
         .tower-dot {
             width: 10px; height: 10px; border-radius: 50%;
             display: inline-block;
+            box-shadow: 0 0 5px currentColor;
         }
 
         /* MAIN CONTENT */
@@ -91,41 +93,47 @@
         }
 
         .card {
-            background: rgba(20, 20, 35, 0.8);
+            background: rgba(20, 20, 35, 0.9);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
             backdrop-filter: blur(10px);
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
             animation: fadeIn 0.3s ease;
         }
 
         .header-row {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 30px;
             margin-bottom: 30px;
             border-bottom: 1px solid var(--border);
             padding-bottom: 20px;
         }
 
-        .preview-canvas {
-            width: 100px;
-            height: 100px;
-            background: #050505;
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        .preview-container {
+            position: relative;
         }
 
-        .title-block h1 { margin: 0; font-size: 3rem; text-transform: uppercase; color: white; }
-        .title-block .subtitle { color: var(--text-muted); font-size: 1.2rem; margin-top: 5px; }
+        .preview-canvas {
+            width: 150px;
+            height: 150px;
+            background: #050505;
+            border: 2px solid var(--border);
+            border-radius: 50%; /* Circular preview */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5) inset;
+        }
+        
+        .title-block { flex: 1; }
+        .title-block h1 { margin: 0; font-size: 3rem; text-transform: uppercase; color: white; line-height: 1; }
+        .title-block .subtitle { color: var(--text-muted); font-size: 1.1rem; margin-top: 10px; line-height: 1.4; }
         .cost-badge { 
-            background: var(--gold); color: black; padding: 5px 10px; 
-            border-radius: 4px; font-weight: bold; font-size: 1rem; 
-            display: inline-block; margin-top: 10px;
+            background: var(--gold); color: black; padding: 5px 12px; 
+            border-radius: 4px; font-weight: 800; font-size: 1.1rem; 
+            display: inline-block; margin-top: 15px;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
         }
 
         /* STATS GRID */
@@ -142,17 +150,23 @@
             padding: 15px;
             text-align: center;
             border-radius: 8px;
+            transition: transform 0.2s, border-color 0.2s;
         }
-        .stat-val { font-size: 2rem; font-weight: 800; display: block; margin-bottom: 5px; }
-        .stat-label { color: var(--text-muted); text-transform: uppercase; font-size: 0.9rem; letter-spacing: 1px; }
+        .stat-box.updated {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            background: rgba(0, 255, 204, 0.05);
+        }
+        .stat-val { font-size: 2rem; font-weight: 800; display: block; margin-bottom: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .stat-label { color: var(--text-muted); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; font-weight: 700; }
 
         /* UPGRADES LIST */
-        h2 { color: var(--accent); border-left: 4px solid var(--accent); padding-left: 15px; margin-bottom: 20px; }
+        h2 { color: var(--accent); border-left: 4px solid var(--accent); padding-left: 15px; margin-bottom: 20px; font-size: 1.5rem; }
 
         .upgrade-list {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 15px;
+            gap: 10px;
         }
 
         .upgrade-item {
@@ -164,22 +178,46 @@
             align-items: center;
             justify-content: space-between;
             transition: 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
-        .upgrade-item:hover { border-color: #555; background: rgba(255,255,255,0.05); }
+        .upgrade-item:hover { border-color: #666; background: rgba(255,255,255,0.05); transform: translateX(5px); }
         
-        .upg-lvl { color: var(--gold); font-weight: bold; width: 80px; }
-        .upg-desc { flex: 1; color: white; font-size: 1.1rem; }
-        .upg-cost { color: var(--text-muted); font-weight: bold; }
+        .upgrade-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 255, 204, 0.05);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
+        }
+        .upgrade-item.active::before {
+            content: 'VISTA ACTUAL';
+            position: absolute;
+            right: 10px; top: 5px;
+            font-size: 0.6rem; color: var(--accent); opacity: 0.7;
+        }
+
+        .upg-lvl { color: var(--gold); font-weight: 800; width: 80px; font-size: 1.1rem; }
+        .upg-desc { flex: 1; color: white; font-size: 1rem; }
+        .upg-cost { color: var(--text-muted); font-weight: bold; font-family: monospace; font-size: 1.1rem; }
         
         .ultimate {
-            border-color: var(--danger);
-            background: linear-gradient(90deg, rgba(255, 42, 109, 0.1), transparent);
+            border-color: rgba(255, 42, 109, 0.3);
+            background: linear-gradient(90deg, rgba(255, 42, 109, 0.05), transparent);
         }
+        .ultimate:hover { border-color: var(--danger); }
+        .ultimate.active { border-color: var(--danger); background: rgba(255, 42, 109, 0.1); }
         .ultimate .upg-lvl { color: var(--danger); }
+
+        .base-btn {
+            text-align: center; margin-bottom: 10px; padding: 10px; 
+            border: 1px solid #444; border-radius: 6px; cursor: pointer; color: #888; font-weight: bold;
+            background: rgba(0,0,0,0.2); transition: 0.2s;
+        }
+        .base-btn:hover { background: rgba(255,255,255,0.05); color: white; }
+        .base-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 204, 0.05); }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
@@ -195,202 +233,231 @@
 </nav>
 
 <main id="main-content">
-    <!-- Content generated by JS -->
     <div style="text-align: center; margin-top: 200px; color: #666;">
-        <h2>SELECCIONA UNA TORRE</h2>
-        <p>Accediendo a los archivos clasificados...</p>
+        <h2>SISTEMA INICIADO</h2>
+        <p>Seleccione una unidad para análisis táctico.</p>
     </div>
 </main>
 
 <script>
-// --- COPIADO DEL JUEGO ORIGINAL (V3.8) ---
-const TILE = 40;
+const TILE = 20; // Escala reducida para stats visuales
 const PALETTE = {
     cannon: '#ff9100', bow: '#00e676', mortar: '#f50057', ice: '#00b0ff', 
     electro: '#d500f9', laser: '#ff00cc', sniper: '#76ff03', 
     minigun: '#2979ff', plasma: '#ff3d00', titan: '#ffd700'
 };
 
+// --- DATOS COMPLETOS ---
 const TOWER_DATA = {
     cannon: { 
         name: "Blaster", symbol: "💥", type: "cannon", color: PALETTE.cannon, 
-        cost: 60, dmg: 12, range: 3*TILE, rate: 45, 
-        desc: "Daño directo básico y económico. Eficiencia decreciente al tener más de 5 unidades.", 
+        cost: 60, dmg: 12, range: 60, rate: 45, 
+        desc: "Daño directo básico. Eficiente y fiable para el inicio.", 
         upgrades: [
-            {cost:40, text:"+5 Daño"},
-            {cost:60, text:"+10 Daño"},
-            {cost:80, text:"+1 Rango y +10 Daño"},
-            {cost:250, text:"ULTIMATE: Munición Explosiva (Splash Pequeño)"} 
+            {cost:40, text:"+5 Daño", apply:(t)=>t.dmg+=5},
+            {cost:60, text:"+10 Daño", apply:(t)=>t.dmg+=10},
+            {cost:80, text:"+1 Rango y +10 Daño", apply:(t)=>{t.dmg+=10; t.range+=20}},
+            {cost:250, text:"ULTIMATE: Explosivo", apply:(t)=>{t.splash=40;}} 
         ] 
     },
     bow: { 
         name: "Rápido", symbol: "🏹", type: "bow", color: PALETTE.bow, 
-        cost: 120, dmg: 6, range: 4*TILE, rate: 20, 
-        desc: "Disparo muy veloz con probabilidad de crítico (x2 Daño).", 
+        cost: 120, dmg: 6, range: 80, rate: 20, 
+        desc: "Velocidad extrema. Probabilidad de impacto crítico.", 
         upgrades: [
-            {cost:80, text:"+20% Velocidad de Ataque"},
-            {cost:100, text:"+2 Daño Base"},
-            {cost:150, text:"Perforante (Atraviesa 1 enemigo)"},
-            {cost:400, text:"ULTIMATE: Triple Shot (Dispara 3 flechas)"} 
+            {cost:80, text:"+20% Velocidad", apply:(t)=>t.rate=Math.floor(t.rate*0.8)},
+            {cost:100, text:"+2 Daño", apply:(t)=>t.dmg+=2},
+            {cost:150, text:"Perforante", apply:(t)=>t.pierce=2},
+            {cost:400, text:"ULTIMATE: Triple Shot", apply:(t)=>{t.multiShot=3;}} 
         ] 
     },
     ice: { 
         name: "Cryo", symbol: "❄️", type: "ice", color: PALETTE.ice, 
-        cost: 110, dmg: 6, range: 3*TILE, rate: 45, 
-        desc: "Aplica ralentización a los enemigos. Esencial para control.", 
+        cost: 110, dmg: 6, range: 60, rate: 45, 
+        desc: "Ralentiza a los enemigos. Soporte vital.", 
         upgrades: [
-            {cost:100, text:"+2s Duración del efecto"},
-            {cost:150, text:"+1 Rango"},
-            {cost:180, text:"Slow Mejorado (70% reducción)"},
-            {cost:350, text:"ULTIMATE: Zero Absoluto (Congela enemigos)"} 
+            {cost:100, text:"+2s Duración", apply:(t)=>t.slowDur+=120},
+            {cost:150, text:"+1 Rango", apply:(t)=>t.range+=20},
+            {cost:180, text:"Slow 70%", apply:(t)=>t.slowFactor=0.3},
+            {cost:350, text:"ULTIMATE: Congelación", apply:(t)=>{t.freeze=true;}} 
         ] 
     },
     mortar: { 
         name: "Artillería", symbol: "💣", type: "mortar", color: PALETTE.mortar, 
-        cost: 200, dmg: 25, range: 5*TILE, rate: 90, splash: 2*TILE, 
-        desc: "Dispara proyectiles parabólicos con gran daño de área.", 
+        cost: 200, dmg: 25, range: 100, rate: 90, splash: 40,
+        desc: "Daño masivo de área. Lento pero devastador.", 
         upgrades: [
-            {cost:120, text:"+Área de Explosión"},
-            {cost:180, text:"+20 Daño"},
-            {cost:200, text:"Recarga -20%"},
-            {cost:650, text:"ULTIMATE: Nuke (Área Masiva +200 Daño)"} 
+            {cost:120, text:"+Área", apply:(t)=>t.splash+=20},
+            {cost:180, text:"+20 Daño", apply:(t)=>t.dmg+=20},
+            {cost:200, text:"Recarga -20%", apply:(t)=>t.rate=Math.floor(t.rate*0.8)},
+            {cost:650, text:"ULTIMATE: Nuke", apply:(t)=>{t.splash+=40; t.dmg+=200;}} 
         ] 
     },
     electro: { 
         name: "Tesla", symbol: "⚡", type: "electro", color: PALETTE.electro, 
-        cost: 220, dmg: 10, range: 3.5*TILE, rate: 45, chain: 3, 
-        desc: "Ataque eléctrico que rebota entre múltiples enemigos.", 
+        cost: 220, dmg: 10, range: 70, rate: 45, chain: 3, 
+        desc: "Rayos que saltan entre múltiples objetivos.", 
         upgrades: [
-            {cost:150, text:"+1 Salto de cadena"},
-            {cost:200, text:"+8 Daño"},
-            {cost:300, text:"+2 Saltos extra"},
-            {cost:700, text:"ULTIMATE: Tormenta (8 Saltos, +25% Daño)"} 
+            {cost:150, text:"+1 Salto", apply:(t)=>t.chain+=1},
+            {cost:200, text:"+8 Daño", apply:(t)=>t.dmg+=8},
+            {cost:300, text:"+2 Saltos", apply:(t)=>{t.chain+=2;}},
+            {cost:700, text:"ULTIMATE: Tormenta", apply:(t)=>{t.chain=8; t.dmg=Math.floor(t.dmg*1.25);}} 
         ] 
     },
     laser: { 
         name: "Láser", symbol: "🧿", type: "laser", color: PALETTE.laser, 
-        cost: 180, dmg: 3, range: 4*TILE, rate: 4, 
-        desc: "Rayo constante. Daño sostenido muy rápido.", 
+        cost: 180, dmg: 3, range: 80, rate: 4, 
+        desc: "Haz continuo. Derrite blindajes rápidamente.", 
         upgrades: [
-            {cost:200, text:"+1 Daño Base"},
-            {cost:250, text:"+1 Rango"},
-            {cost:300, text:"Quemadura (Daño en el tiempo)"},
-            {cost:650, text:"ULTIMATE: Disintegrator (Ignora Armadura, Mayor DPS)"} 
+            {cost:200, text:"+1 Daño Base", apply:(t)=>t.dmg+=1},
+            {cost:250, text:"+1 Rango", apply:(t)=>t.range+=20},
+            {cost:300, text:"Quemadura", apply:(t)=>t.burn=true},
+            {cost:650, text:"ULTIMATE: Disintegrator", apply:(t)=>{t.rate=3; t.dmg+=2;}} 
         ] 
     },
     sniper: { 
         name: "Railgun", symbol: "🔭", type: "sniper", color: PALETTE.sniper, 
-        cost: 450, dmg: 300, range: 9*TILE, rate: 150, 
-        desc: "Alcance extremo y daño masivo a un solo objetivo.", 
+        cost: 450, dmg: 300, range: 180, rate: 150, 
+        desc: "Elimina enemigos fuertes de un solo disparo.", 
         upgrades: [
-            {cost:250, text:"+100 Daño"},
-            {cost:400, text:"Perforante (Atraviesa 3 enemigos)"},
-            {cost:500, text:"Recarga -25%"},
-            {cost:1500, text:"ULTIMATE: One-Shot (+600 Daño, Perforación x8)"} 
+            {cost:250, text:"+100 Daño", apply:(t)=>t.dmg+=100},
+            {cost:400, text:"Perforante", apply:(t)=>t.pierce=3},
+            {cost:500, text:"Recarga -25%", apply:(t)=>t.rate=Math.floor(t.rate*0.75)},
+            {cost:1500, text:"ULTIMATE: One-Shot", apply:(t)=>{t.dmg+=600; t.pierce=8;}} 
         ] 
     },
     minigun: { 
         name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, 
-        cost: 500, dmg: 11, range: 4*TILE, rate: 5, 
-        desc: "Metralleta pesada. Velocidad de disparo extrema.", 
+        cost: 500, dmg: 11, range: 80, rate: 5, 
+        desc: "Lluvia de balas incesante.", 
         upgrades: [
-            {cost:600, text:"+4 Daño Base"},
-            {cost:900, text:"+1 Rango"},
-            {cost:1200, text:"Precisión (Daño x1.1)"},
-            {cost:3500, text:"ULTIMATE: Bullet Hell (Doble Cañón)"} 
+            {cost:600, text:"+4 Daño", apply:(t)=>t.dmg+=4},
+            {cost:900, text:"+1 Rango", apply:(t)=>t.range+=20},
+            {cost:1200, text:"Precisión", apply:(t)=>{t.dmg=Math.floor(t.dmg*1.1);}},
+            {cost:3500, text:"ULTIMATE: Bullet Hell", apply:(t)=>{t.multiShot=2;}} 
         ] 
     },
     plasma: { 
         name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, 
-        cost: 350, dmg: 7, range: 3.5*TILE, rate: 6, splash: 1.65*TILE, 
-        desc: "Torre legendaria. Área de daño constante alrededor del impacto.", 
+        cost: 350, dmg: 7, range: 70, rate: 6, splash: 30,
+        desc: "Deja zonas de daño persistente.", 
         upgrades: [
-            {cost:900, text:"+Área 20%"},
-            {cost:1000, text:"+30 Daño (DPS)"},
-            {cost:1200, text:"Napalm (Quemadura)"},
-            {cost:3000, text:"ULTIMATE: Supernova (x2.25 Daño, Área Gigante)"} 
+            {cost:900, text:"+Área 20%", apply:(t)=>t.splash*=1.2},
+            {cost:1000, text:"+30 Daño (DPS)", apply:(t)=>t.dmg+=3},
+            {cost:1200, text:"Napalm", apply:(t)=>t.burn=true},
+            {cost:3000, text:"ULTIMATE: Supernova", apply:(t)=>{t.splash*=1.5; t.dmg=Math.floor(t.dmg*2.25);}} 
         ] 
     },
     titan: { 
         name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, 
-        cost: 2000, dmg: 600, range: 7*TILE, rate: 120, splash: 3*TILE, 
-        desc: "El arma definitiva. Daño colosal con probabilidad de crítico x3.", 
+        cost: 2000, dmg: 600, range: 140, rate: 120, splash: 60,
+        desc: "Poder absoluto.", 
         upgrades: [
-            {cost:2500, text:"+600 Daño"},
-            {cost:3500, text:"Rango Global"},
-            {cost:5000, text:"Recarga -30%"},
-            {cost:15000, text:"ULTIMATE: APOCALIPSIS (6000 Daño)"} 
+            {cost:2500, text:"+600 Daño", apply:(t)=>t.dmg+=600},
+            {cost:3500, text:"Rango Global", apply:(t)=>t.range=300},
+            {cost:5000, text:"Recarga -30%", apply:(t)=>t.rate=Math.floor(t.rate*0.7)},
+            {cost:15000, text:"ULTIMATE: APOCALIPSIS", apply:(t)=>{t.dmg=6000; t.splash=100;}} 
         ] 
     }
 };
 
-// --- RENDER SYSTEM FOR PREVIEWS ---
-function drawTowerPreview(ctx, key) {
-    const data = TOWER_DATA[key];
-    const w = ctx.canvas.width;
-    const h = ctx.canvas.height;
-    const cx = w/2;
-    const cy = h/2;
-    
-    // Clear
-    ctx.clearRect(0,0,w,h);
-    
-    // Animate
-    const time = Date.now() * 0.002;
-    const angle = Math.sin(time) * 0.5 - Math.PI/2;
-    const scale = 1.0 + (Math.sin(time*4) > 0.8 ? 0.1 : 0); // Simulated recoil pulse
+// --- SIMULACIÓN VISUAL (SOLO TORRE) ---
+let simLoop;
+let simTower = null;
 
-    ctx.save();
-    ctx.translate(cx, cy);
+function startPreview(canvasId, towerKey, levelIndex) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
     
-    // Base
-    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
-    
-    // Color Indicator
-    ctx.fillStyle = data.color;
-    
-    // Rotate Turret
-    ctx.rotate(angle);
-    ctx.scale(scale, scale);
+    // Configurar Torre Visual
+    const base = TOWER_DATA[towerKey];
+    simTower = {
+        key: towerKey,
+        color: base.color,
+        level: levelIndex, // 0=Base, 1=Lvl2...
+        multiShot: 0
+    };
 
-    // Draw Shape
-    ctx.shadowBlur = 10; ctx.shadowColor = data.color;
+    // Aplicar mejoras solo para visuales (multishot, etc)
+    for(let i=0; i<levelIndex; i++) {
+        if(base.upgrades[i]) base.upgrades[i].apply(simTower);
+    }
     
-    if(key === 'cannon' || key === 'mortar' || key === 'plasma') { 
-        ctx.fillRect(-12,-12,24,24); 
-        ctx.fillStyle = '#111'; ctx.fillRect(0,-4,24,8); 
-        ctx.strokeStyle = data.color; ctx.strokeRect(-12,-12,24,24);
-    }
-    else if (key === 'bow' || key === 'sniper') { 
-        ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,12); ctx.lineTo(-5,0); ctx.lineTo(-10,-12); ctx.fill(); 
-        if(key === 'sniper') { ctx.fillStyle='#111'; ctx.fillRect(0,-1,25,2); } 
-    }
-    else if (key === 'minigun') {
-        ctx.fillRect(-10,-10,20,20);
-        ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3);
-    }
-    else if (key === 'laser') {
-        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-8, 8); ctx.lineTo(-8, -8); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.fillRect(-4, -2, 8, 4); 
-    }
-    else if (key === 'titan') {
-        ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
-        ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
-    }
-    else { 
-        ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); 
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5,0,3,0,Math.PI*2); ctx.fill();
-    }
+    if(simLoop) cancelAnimationFrame(simLoop);
 
-    ctx.restore();
+    function loop() {
+        // Limpiar
+        ctx.fillStyle = '#050505'; ctx.fillRect(0,0,w,h);
+        
+        // Animación suave
+        const time = Date.now() * 0.002;
+        const angle = Math.sin(time) * 0.5 - Math.PI/2; // Movimiento de "escaneo"
+        const scale = 1.0 + Math.sin(time*3) * 0.05; // Respiración
+
+        ctx.save();
+        ctx.translate(w/2, h/2);
+        
+        // Dibujar Torre
+        // Base
+        ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#444'; ctx.lineWidth = 1; ctx.stroke();
+        
+        // Indicadores de Nivel (Puntos alrededor)
+        const lvlColor = simTower.level >= 4 ? '#ffd700' : simTower.color;
+        for(let i=0; i<simTower.level; i++) { 
+            ctx.fillStyle = lvlColor;
+            ctx.beginPath(); ctx.arc(-10 + i*7, -22, 3, 0, Math.PI*2); ctx.fill(); 
+        }
+
+        // Rotar Torre
+        ctx.rotate(angle);
+        ctx.scale(scale, scale);
+        
+        // Glow effect
+        ctx.shadowBlur = 15; ctx.shadowColor = simTower.color; ctx.fillStyle = simTower.color;
+        ctx.strokeStyle = simTower.color;
+
+        // Formas Específicas
+        if(simTower.key === 'cannon' || simTower.key === 'mortar' || simTower.key === 'plasma') { 
+            ctx.fillRect(-12,-12,24,24); 
+            ctx.fillStyle = '#111'; ctx.fillRect(0,-4,24,8); 
+            ctx.strokeStyle = simTower.color; ctx.strokeRect(-12,-12,24,24);
+        }
+        else if (simTower.key === 'bow' || simTower.key === 'sniper') { 
+            ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(-10,12); ctx.lineTo(-5,0); ctx.lineTo(-10,-12); ctx.fill(); 
+            if(simTower.key === 'sniper') { ctx.fillStyle='#111'; ctx.fillRect(0,-1,25,2); } 
+        }
+        else if (simTower.key === 'minigun') {
+            ctx.fillRect(-10,-10,20,20);
+            ctx.fillStyle='#111'; ctx.fillRect(5, -6, 15, 3); ctx.fillRect(5, 0, 15, 3); ctx.fillRect(5, 6, 15, 3);
+            if(simTower.multiShot > 0) ctx.fillRect(5, -9, 15, 3);
+        }
+        else if (simTower.key === 'laser') {
+            ctx.beginPath(); 
+            ctx.moveTo(10, 0); ctx.lineTo(-8, 8); ctx.lineTo(-8, -8); ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.fillRect(-4, -2, 8, 4); 
+        }
+        else if (simTower.key === 'titan') {
+            ctx.beginPath(); ctx.arc(0,0,14,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
+            ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+        }
+        else { 
+            ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); 
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5,0,3,0,Math.PI*2); ctx.fill();
+        }
+        
+        ctx.restore();
+        simLoop = requestAnimationFrame(loop);
+    }
+    loop();
 }
 
 // --- UI GENERATION ---
 const navList = document.getElementById('nav-list');
 const mainContent = document.getElementById('main-content');
-const activeCanvases = {}; // Store canvas references to animate them
 
 // Generate Navigation
 Object.keys(TOWER_DATA).forEach(key => {
@@ -406,50 +473,66 @@ Object.keys(TOWER_DATA).forEach(key => {
 setTimeout(() => loadTower('cannon', navList.children[1]), 100);
 
 function loadTower(key, btnElement) {
-    // Update Active Class
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     if(btnElement) btnElement.classList.add('active');
 
     const t = TOWER_DATA[key];
+    renderTowerView(key, 0); // Start at Base Level
+}
+
+function renderTowerView(key, activeLevel) {
+    const t = TOWER_DATA[key];
     
-    // Calculate DPS (Approx)
-    const shotsPerSec = 60 / t.rate;
-    const dps = (t.dmg * shotsPerSec).toFixed(1);
+    // Calculate Stats based on activeLevel
+    // Clone object simply to calculate
+    let tempTower = { dmg: t.dmg, rate: t.rate, range: t.range };
+    for(let i=0; i<activeLevel; i++) {
+        if(t.upgrades[i]) t.upgrades[i].apply(tempTower);
+    }
+
+    const shotsPerSec = 60 / tempTower.rate;
+    const dps = (tempTower.dmg * shotsPerSec).toFixed(1);
 
     const html = `
         <div class="card">
             <div class="header-row">
-                <canvas id="preview-${key}" class="preview-canvas" width="100" height="100"></canvas>
+                <div class="preview-container">
+                    <canvas id="preview-canvas" class="preview-canvas" width="150" height="150"></canvas>
+                </div>
                 <div class="title-block">
                     <h1 style="color:${t.color}">${t.name}</h1>
                     <div class="subtitle">${t.desc}</div>
-                    <div class="cost-badge">$${t.cost}</div>
+                    <div class="cost-badge">COSTE BASE: $${t.cost}</div>
                 </div>
             </div>
 
             <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-val" style="color:#ff5252">${t.dmg}</span>
-                    <span class="stat-label">Daño / Tiro</span>
+                <div class="stat-box updated">
+                    <span class="stat-val" style="color:#ff5252">${tempTower.dmg.toFixed(0)}</span>
+                    <span class="stat-label">Daño</span>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-val" style="color:#448aff">${shotsPerSec.toFixed(2)}</span>
-                    <span class="stat-label">Disparos / s</span>
+                <div class="stat-box updated">
+                    <span class="stat-val" style="color:#448aff">${shotsPerSec.toFixed(1)}/s</span>
+                    <span class="stat-label">Velocidad</span>
                 </div>
-                <div class="stat-box">
-                    <span class="stat-val" style="color:#69f0ae">${(t.range/TILE).toFixed(1)}</span>
-                    <span class="stat-label">Rango (Tiles)</span>
+                <div class="stat-box updated">
+                    <span class="stat-val" style="color:#69f0ae">${(tempTower.range/TILE).toFixed(1)}</span>
+                    <span class="stat-label">Rango</span>
                 </div>
-                <div class="stat-box">
+                <div class="stat-box updated">
                     <span class="stat-val" style="color:#ffd740">${dps}</span>
-                    <span class="stat-label">DPS Base</span>
+                    <span class="stat-label">DPS Est.</span>
                 </div>
             </div>
 
-            <h2>MEJORAS DISPONIBLES</h2>
+            <h2>ÁRBOL DE MEJORAS (Haz Click para previsualizar)</h2>
+            <div class="base-btn ${activeLevel === 0 ? 'active' : ''}" onclick="renderTowerView('${key}', 0)">
+                NIVEL 1: BASE (RESETEAR VISTA)
+            </div>
             <div class="upgrade-list">
                 ${t.upgrades.map((upg, i) => `
-                    <div class="upgrade-item ${i===3 ? 'ultimate' : ''}">
+                    <div class="upgrade-item ${i===3 ? 'ultimate' : ''} ${activeLevel === i+1 ? 'active' : ''}" 
+                         onclick="renderTowerView('${key}', ${i+1})">
                         <div class="upg-lvl">NIVEL ${i+2}</div>
                         <div class="upg-desc">${upg.text}</div>
                         <div class="upg-cost">$${upg.cost}</div>
@@ -460,27 +543,10 @@ function loadTower(key, btnElement) {
     `;
 
     mainContent.innerHTML = html;
-
-    // Start Animation for this specific canvas
-    const canvas = document.getElementById(`preview-${key}`);
-    const ctx = canvas.getContext('2d');
     
-    // Stop previous loop if simple global (for this example we just run a loop that draws current active)
-    activeKey = key;
-    activeCtx = ctx;
+    // Start Sim
+    startPreview('preview-canvas', key, activeLevel);
 }
-
-let activeKey = null;
-let activeCtx = null;
-
-// Global Animation Loop
-function animate() {
-    requestAnimationFrame(animate);
-    if(activeKey && activeCtx) {
-        drawTowerPreview(activeCtx, activeKey);
-    }
-}
-animate();
 
 </script>
 </body>
