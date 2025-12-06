@@ -814,7 +814,6 @@ const Game = {
         const diff = this.difficulty;
         if(diff >= 0.20) this.lives = 1; else if(diff >= 0.15) this.lives = 3; else if(diff >= 0.10) this.lives = 10; else this.lives = 20;                             
         document.getElementById('global-overlay').classList.add('hidden'); document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
-        document.getElementById('connection-msg').style.display = 'none'; // Aunque no existe, para evitar errores
         document.getElementById('menu-content').style.display = 'block';
 
         this.playing = true; this.money = 250; this.wave = 1; CURRENT_ARSENAL = BASIC_TOWERS;
