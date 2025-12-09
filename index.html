@@ -515,16 +515,19 @@ class Enemy extends Entity {
         this.idx = 0;
         const data = ENEMY_DATA[type];
         
-        // --- DIFFICULTY SCALING ---
-        let waveMult = 1 + (Game.wave * 0.4); 
+        // --- DIFFICULTY SCALING (BALANCED) ---
+        // Factor de ola inicial (más suave: 0.25x en lugar de 0.4x)
+        let waveMult = 1 + (Game.wave * 0.25); 
         
-        // EXPONENTIAL CURVE AFTER WAVE 50
+        // EXPONENTIAL CURVE AFTER WAVE 50 (se mantiene pero se ajusta la base)
         if (Game.wave > 50) {
-            waveMult *= Math.pow(1.08, Game.wave - 50);
+            // Aplicamos un crecimiento más lento para permitir que las torres grandes escalen.
+            waveMult *= Math.pow(1.06, Game.wave - 50);
         }
-        // HYPER EXPONENTIAL CURVE AFTER WAVE 80 to make Titan useless
+        // HYPER EXPONENTIAL CURVE AFTER WAVE 80
         if (Game.wave > 80) {
-            waveMult *= Math.pow(1.2, Game.wave - 80);
+            // Se usa 1.1 para suavizar la curva hiper-exponencial
+            waveMult *= Math.pow(1.1, Game.wave - 80);
         }
         
         this.maxHp = Math.floor(data.hp * waveMult);
