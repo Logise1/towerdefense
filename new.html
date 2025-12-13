@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Defense 4.0: Mobile Hardcore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+        
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: #020205;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            height: 100vh;
+            height: 100dvh; /* Altura dinámica para móviles */
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Layout Principal */
+        #main-layout {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            flex-direction: row; /* Default PC */
+        }
+
+        #canvas-wrapper {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #13131f 0%, #000 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        canvas {
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.1);
+            border: 1px solid #331111;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Sidebar Derecha */
+        #sidebar {
+            width: 320px;
+            background: rgba(10, 10, 16, 0.98);
+            border-left: 2px solid #ff0000;
+            display: flex;
+            flex-direction: column;
+            padding: 0.8rem;
+            z-index: 20;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        /* --- MOBILE LAYOUT --- */
+        @media (max-width: 768px) {
+            #main-layout {
+                flex-direction: column; /* Cambiar a vertical en móvil */
+            }
+            
+            #canvas-wrapper {
+                flex-grow: 1; /* Ocupa el espacio sobrante arriba */
+                height: 55%;  /* Base height hint */
+            }
+
+            #sidebar {
+                width: 100%;
+                height: 45%; /* Panel inferior fijo */
+                min-height: 280px; /* Asegurar espacio mínimo */
+                border-left: none;
+                border-top: 2px solid #ff0000;
+                padding: 0.5rem;
+                overflow-y: hidden; /* Evitar scroll del contenedor principal */
+            }
+
+            /* Ajustes del Arsenal para móvil (Grid horizontal) */
+            #arsenalPanel {
+                flex-grow: 1;
+                overflow-y: auto; /* Scroll interno para torres */
+            }
+
+            #towerList {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+                gap: 0.4rem;
+                padding-bottom: 5px;
+            }
+
+            .tower-card {
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+                height: auto;
+                max-height: none;
+                padding: 0.4rem;
+                margin-bottom: 0;
+            }
+
+            .tower-info h3 { font-size: 0.65rem; display: none; } /* Ocultar nombres largos en móvil si quieres, o dejar pequeños */
+            .tower-info { display: block; }
+            .tower-cost { font-size: 0.75rem; margin-top: 2px; }
+            .tower-icon { width: 30px; height: 30px; margin-bottom: 2px; font-size: 0.7rem; }
+
+            /* Stats Bar Compacta */
+            .stats-bar {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
+                padding: 4px 8px;
+                margin-bottom: 8px;
+            }
+            .stats-bar > div { margin-bottom: 0; font-size: 0.8rem; display: flex; gap: 5px; align-items: center; }
+
+            /* Inspector más pequeño */
+            #inspectorPanel { padding: 10px; }
+            .stat-row { font-size: 0.8rem; margin-bottom: 4px; }
+            .upgrade-btn { height: 45px; margin-top: 5px; font-size: 0.9rem; }
+            
+            /* Títulos */
+            .neon-title { font-size: 1rem; margin-bottom: 0.5rem; display: none; } /* Ahorrar espacio */
+            
+            /* Start Screen responsive */
+            .modal h1 { font-size: 2.5rem; }
+            .modal h2 { font-size: 1.5rem; }
+            .modal p { font-size: 0.9rem; }
+            .btn { font-size: 0.8rem; padding: 10px; }
+        }
+
+        /* Estilos Comunes */
+        .neon-title {
+            font-family: 'Orbitron', sans-serif;
+            color: #ff0000;
+            text-shadow: 0 0 10px #ff0000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .tower-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 0.6rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        /* En Desktop mantenemos max-height */
+        @media (min-width: 769px) {
+            .tower-card { max-height: 60px; }
+        }
+
+        .tower-card:hover:not(.locked) {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff4444;
+            transform: scale(1.02);
+        }
+        .tower-card:active:not(.locked) { cursor: grabbing; opacity: 0.8; }
+        .tower-card.locked { opacity: 0.3; cursor: not-allowed; filter: grayscale(1); border-color: #550000; }
+
+        .tower-icon {
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+            color: #000;
+        }
+        
+        /* Desktop specific icon size */
+        @media (min-width: 769px) {
+            .tower-icon { width: 36px; height: 36px; }
+        }
+
+        .tower-info h3 { font-weight: 700; color: #fff; margin: 0; line-height: 1; font-size: 0.9rem; }
+        .tower-cost { color: #ffd700; font-weight: bold; font-size: 0.85rem; }
+
+        .stats-bar {
+            background: rgba(30, 0, 0, 0.6);
+            border: 1px solid #550000;
+            border-radius: 6px;
+            /* Padding definido en media queries */
+        }
+        @media (min-width: 769px) {
+            .stats-bar { padding: 10px; margin-bottom: 20px; }
+            .stats-bar > div { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        }
+
+        #inspectorPanel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #444;
+            border-radius: 8px;
+            display: none;
+            flex-grow: 1;
+        }
+
+        .stat-row { display: flex; justify-content: space-between; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .stat-val { color: #fff; font-weight: bold; }
+
+        .upgrade-btn {
+            background: linear-gradient(90deg, #166534, #15803d);
+            width: 100%;
+            border: 1px solid #22c55e;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: 'Orbitron';
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            line-height: 1.2;
+        }
+        @media (min-width: 769px) { .upgrade-btn { height: 55px; margin-top: 15px; } }
+
+        .sell-btn {
+            background: #7f1d1d;
+            width: 100%;
+            height: 35px;
+            margin-top: 8px;
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .close-inspector {
+            width: 100%; text-align: center; margin-top: 5px; cursor: pointer; color: #888; font-size: 0.8rem; text-decoration: underline;
+            padding: 5px;
+        }
+
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; backdrop-filter: blur(5px);
+            padding: 20px;
+            text-align: center;
+        }
+        .hidden { display: none !important; }
+
+        .control-group { display: flex; gap: 5px; margin-top: 5px; flex-shrink: 0; }
+        .btn {
+            background: #1a1a2e; border: 1px solid #ff0000; color: #ffaaaa;
+            height: 40px; border-radius: 4px; cursor: pointer;
+            font-family: 'Orbitron'; text-transform: uppercase; font-size: 0.8rem;
+            flex: 1; display: flex; justify-content: center; align-items: center;
+            flex: none; /* Importante para que no se estiren */
+            padding: 0 15px;
+        }
+        .btn:hover { background: #ff0000; color: #000; }
+        
+        .btn-start { 
+            background: #b91c1c; border-color: #ef4444; color: white; width: 100%; 
+            margin-top: 5px; font-weight: bold; font-size: 1rem; height: 45px; 
+            flex-shrink: 0;
+        }
+
+        #boss-hud {
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            width: 80%; max-width: 400px; display: none; pointer-events: none; z-index: 10;
+        }
+        .boss-bar-bg { width: 100%; height: 20px; background: #330000; border: 2px solid #ff0000; border-radius: 4px; overflow: hidden; }
+        .boss-bar-fill { height: 100%; background: linear-gradient(90deg, #ff0000, #ff8800); width: 100%; }
+        .boss-name { text-align: center; color: #ff0000; font-family: 'Orbitron'; text-shadow: 0 0 5px #ff0000; margin-bottom: 2px; font-size: 1rem; }
+
+        .tooltip {
+            position: absolute; background: rgba(0,0,0,0.95); border: 1px solid #ff4444;
+            padding: 10px; pointer-events: none; display: none; z-index: 100;
+            width: 200px; font-size: 0.8rem; box-shadow: 0 0 15px rgba(255,0,0,0.2);
+        }
+        /* Ocultar tooltip en móvil para que no estorbe */
+        @media (max-width: 768px) { .tooltip { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<div id="main-layout">
+    
+    <!-- Canvas Area -->
+    <div id="canvas-wrapper">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="boss-hud">
+            <div class="boss-name" id="bossName">MEGA BOSS</div>
+            <div class="boss-bar-bg"><div class="boss-bar-fill" id="bossHealth"></div></div>
+        </div>
+
+        <div id="startScreen" class="modal">
+            <h1 class="text-red-600 neon-title" style="display:block; margin-bottom:0.5rem;">NEON DEFENSE</h1>
+            <h2 class="text-white mb-4 font-bold">HARDCORE</h2>
+            <div class="bg-gray-900 p-4 border border-red-900 mb-6 max-w-sm text-center">
+                <p class="text-red-400 text-xl font-bold mb-1">⚠️ 1 SOLA VIDA ⚠️</p>
+                <p class="text-gray-400 text-sm">Gestiona tu dinero. Mejora tus torres. No falles.</p>
+            </div>
+            <button onclick="startGame()" class="btn" style="background:#b91c1c; color:white; border:none; width: auto; min-width: 200px; font-size: 1.2rem; height: auto; padding: 15px;">INICIAR MISIÓN</button>
+        </div>
+
+        <div id="gameOverScreen" class="modal hidden">
+            <h1 class="font-bold text-red-600 neon-title mb-2" style="display:block; font-size:3rem;">GAME OVER</h1>
+            <p class="text-xl mb-6">Oleada: <span id="finalWave" class="text-yellow-400 font-bold">0</span></p>
+            <button onclick="resetGame()" class="btn" style="width: auto; min-width: 150px; height: auto; padding: 12px;">REINTENTAR</button>
+        </div>
+    </div>
+
+    <!-- Sidebar (Bottom on Mobile) -->
+    <div id="sidebar">
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div><span class="text-gray-400">VIDA:</span> <span id="livesDisplay" class="text-red-500 font-black">1</span></div>
+            <div><span class="text-gray-400">DINERO:</span> <span id="moneyDisplay" class="text-yellow-400 font-bold">$550</span></div>
+            <div><span class="text-gray-400">WAVE:</span> <span id="waveDisplay" class="text-blue-400 font-bold">1</span></div>
+        </div>
+
+        <!-- Inspector (Swaps with Arsenal) -->
+        <div id="inspectorPanel">
+            <h3 class="text-center text-green-400 font-bold mb-2 font-orbitron" id="inspName">TORRE</h3>
+            <div class="stat-row"><span>Nivel:</span> <span class="stat-val" id="inspLevel">1</span></div>
+            <div class="stat-row"><span>Daño:</span> <span class="stat-val" id="inspDmg">10</span></div>
+            <div class="stat-row"><span>Rango:</span> <span class="stat-val" id="inspRange">100</span></div>
+            
+            <button id="btnUpgrade" class="upgrade-btn" onclick="upgradeSelected()">
+                MEJORAR <span class="text-xs font-normal text-white" id="upgradeCostText" style="opacity:0.9;">$150</span>
+            </button>
+            <button class="sell-btn" onclick="sellSelected()">VENDER <span id="sellPriceText" class="text-white text-xs ml-1">$50</span></button>
+            <div class="close-inspector" onclick="deselectTower()">CANCELAR / VOLVER</div>
+        </div>
+
+        <!-- Arsenal -->
+        <div id="arsenalPanel" style="display: flex; flex-direction: column; overflow: hidden;">
+            <h2 class="neon-title" style="font-size: 0.8rem; text-align: left; border-bottom: 1px solid #333; margin-bottom: 5px;">ARSENAL</h2>
+            <div id="towerList" style="overflow-y: auto; flex-grow: 1;">
+                <!-- JS fills this -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="control-group">
+            <button class="btn" onclick="setSpeed(1)">1x</button>
+            <button class="btn" onclick="setSpeed(2)">2x</button>
+            <button class="btn" onclick="toggleMute()" id="muteBtn">🔊</button>
+        </div>
+        <button id="startWaveBtn" class="btn btn-start" onclick="startWave()">SIGUIENTE OLEADA</button>
+    </div>
+</div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<script>
+    const AudioSys = {
+        ctx: null, muted: false,
+        init: function() {
+            if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+        },
+        play: function(freq, type, dur, vol=0.1, slide=0) {
+            if(this.muted || !this.ctx) return;
+            const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            if(slide!==0) osc.frequency.linearRampToValueAtTime(freq+slide, this.ctx.currentTime+dur);
+            gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime+dur);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime+dur);
+        },
+        noise: function(dur, vol=0.1) {
+            if(this.muted || !this.ctx) return;
+            const b = this.ctx.createBuffer(1, this.ctx.sampleRate*dur, this.ctx.sampleRate);
+            const d = b.getChannelData(0); for(let i=0; i<d.length; i++) d[i]=Math.random()*2-1;
+            const s = this.ctx.createBufferSource(); s.buffer=b;
+            const g = this.ctx.createGain(); g.gain.setValueAtTime(vol, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime+dur);
+            const f = this.ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1000;
+            s.connect(f); f.connect(g); g.connect(this.ctx.destination); s.start();
+        }
+    };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    // Internal resolution
+    const GAME_W = 900;
+    const GAME_H = 700;
+    
+    let gameState = { money: 550, lives: 1, wave: 1, isRunning: false, isPaused: false, speedMultiplier: 1, isWaveActive: false, selectedTower: null };
+    let enemies = [], towers = [], projectiles = [], particles = [], texts = [];
+
+    const TOWER_TYPES = [
+        { name: "TURRETA", cost: 100, range: 130, damage: 15, cooldown: 40, color: '#3b82f6', type: 'basic', desc: "Equilibrada." },
+        { name: "RAPIDA", cost: 280, range: 110, damage: 6, cooldown: 8, color: '#eab308', type: 'rapid', desc: "Fuego rápido." },
+        { name: "SNIPER", cost: 500, range: 350, damage: 120, cooldown: 120, color: '#9333ea', type: 'sniper', desc: "Largo alcance." },
+        { name: "HIELO", cost: 400, range: 100, damage: 4, cooldown: 5, color: '#06b6d4', type: 'ice', desc: "Ralentiza." },
+        { name: "PLASMA", cost: 650, range: 140, damage: 20, cooldown: 50, color: '#f97316', type: 'plasma', desc: "Quemadura." },
+        { name: "TESLA", cost: 800, range: 160, damage: 40, cooldown: 60, color: '#fff', type: 'tesla', desc: "Rebote." },
+        { name: "MISILES", cost: 950, range: 220, damage: 50, cooldown: 90, color: '#ef4444', type: 'missile', desc: "Area." },
+        { name: "LASER", cost: 1500, range: 180, damage: 3, cooldown: 1, color: '#ec4899', type: 'laser', desc: "Daño continuo." }
+    ];
+
+    const path = [
+        {x: 0, y: 120}, {x: 180, y: 120}, {x: 180, y: 550},
+        {x: 500, y: 550}, {x: 500, y: 200}, {x: 750, y: 200},
+        {x: 750, y: 600}, {x: GAME_W, y: 600}
+    ];
+
+    function initSidebar() {
+        const list = document.getElementById('towerList'); list.innerHTML = '';
+        TOWER_TYPES.forEach((t, i) => {
+            const div = document.createElement('div'); div.className = 'tower-card';
+            div.innerHTML = `
+                <div class="tower-icon" style="background:${t.color}; border:1px solid #fff;">${t.name[0]}</div>
+                <div class="tower-info">
+                    <h3>${t.name}</h3>
+                    <div class="tower-cost">$${t.cost}</div>
+                </div>
+            `;
+            // Mouse (Desktop)
+            div.onmousedown = (e) => startDrag(e, i);
+            // Touch (Mobile)
+            div.ontouchstart = (e) => startDrag(e, i);
+            
+            div.onmouseenter = (e) => showTooltip(e, t); div.onmouseleave = hideTooltip;
+            div.id = `tower-btn-${i}`; list.appendChild(div);
+        });
+    }
+
+    function showTooltip(e, t) {
+        if(window.innerWidth < 769) return;
+        const tt = document.getElementById('tooltip');
+        tt.innerHTML = `<strong style="color:${t.color}">${t.name}</strong><br><span class="text-xs text-gray-400">${t.desc}</span>`;
+        tt.style.display = 'block';
+        tt.style.top = e.target.getBoundingClientRect().top + 'px';
+        tt.style.left = (e.target.getBoundingClientRect().left - 210) + 'px';
+    }
+    function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+    class Enemy {
+        constructor(w, boss=false) {
+            this.idx = 0; this.x = path[0].x; this.y = path[0].y;
+            this.frozen = 0; this.burn = 0; this.boss = boss; this.slow = 1;
+            let d = Math.pow(1.15, w - 1);
+            this.spd = 1.6 + Math.random() * 0.6; this.maxHp = Math.floor(60 * d);
+            this.rad = 12; this.col = '#ef4444';
+            if(boss) { this.maxHp *= 20; this.spd *= 0.55; this.rad = 32; this.col = '#ff00ff';
+                document.getElementById('boss-hud').style.display = 'block';
+                document.getElementById('bossName').innerText = "BOSS (W" + w + ")";
+            } else {
+                let r = Math.random();
+                if(w%3===0 && r>0.6) { this.spd*=1.5; this.maxHp*=0.7; this.col='#facc15'; this.rad=10; }
+                else if(w%5===0 && r<0.2) { this.spd*=0.7; this.maxHp*=3.5; this.col='#00ffff'; this.rad=18; }
+            }
+            this.hp = this.maxHp;
+        }
+        update() {
+            this.slow = (this.frozen > 0) ? 0.5 : 1.0; if(this.frozen > 0) this.frozen--;
+            if(this.burn > 0) { this.hp -= 0.5; if(this.burn%10===0) particles.push(new Part(this.x, this.y, '#f97316', 1)); this.burn--; if(this.hp<=0) return this.die(); }
+            const t = path[this.idx + 1]; if(!t) return;
+            let s = this.spd * this.slow; const dx = t.x - this.x, dy = t.y - this.y, dist = Math.hypot(dx, dy);
+            if(dist < s) { this.x = t.x; this.y = t.y; this.idx++; if(this.idx >= path.length - 1) this.reach(); }
+            else { this.x += (dx/dist)*s; this.y += (dy/dist)*s; }
+        }
+        draw(c) {
+            c.shadowBlur = this.boss ? 20 : 0; c.shadowColor = this.col;
+            c.fillStyle = this.burn > 0 ? '#f97316' : this.col;
+            c.beginPath(); c.arc(this.x, this.y, this.rad, 0, Math.PI*2); c.fill();
+            if(this.frozen>0) { c.strokeStyle='#0ff'; c.lineWidth=2; c.stroke(); }
+            if(!this.boss) {
+                const p = this.hp/this.maxHp;
+                c.fillStyle='#300'; c.fillRect(this.x-10, this.y-this.rad-6, 20, 4);
+                c.fillStyle=p<0.3?'#f00':'#0f0'; c.fillRect(this.x-10, this.y-this.rad-6, 20*p, 4);
+            }
+            c.shadowBlur=0;
+        }
+        hit(dmg) { this.hp -= dmg; if(this.hp<=0) return this.die(); return false; }
+        die() {
+            let r = Math.max(5, Math.min(300, Math.floor(this.maxHp/5)));
+            addMoney(r); AudioSys.noise(0.1, 0.1);
+            for(let i=0; i<(this.boss?20:6); i++) particles.push(new Part(this.x, this.y, this.col, this.boss?5:2));
+            texts.push(new FText(this.x, this.y-10, `+$${r}`, '#ff0'));
+            if(this.boss) document.getElementById('boss-hud').style.display = 'none';
+        }
+        reach() { this.hp=0; loseLife(); if(this.boss) document.getElementById('boss-hud').style.display='none'; }
+    }
+
+    class Tower {
+        constructor(x, y, tid) {
+            this.x = x; this.y = y; this.tid = tid;
+            this.cfg = TOWER_TYPES[tid]; this.st = { ...this.cfg };
+            this.cd = 0; this.ang = 0; this.tgt = null; this.lvl = 1;
+        }
+        upgrade() {
+            this.lvl++; this.st.damage = Math.floor(this.st.damage*1.3); this.st.range = Math.floor(this.st.range*1.15);
+            if(this.st.type==='rapid') this.st.cooldown = Math.max(2, this.st.cooldown-1);
+            particles.push(new Part(this.x, this.y, '#0f0', 2, 20));
+            texts.push(new FText(this.x, this.y-20, "UPGRADE!", "#0f0")); AudioSys.play(800, 'sine', 0.3);
+        }
+        cost() { return Math.floor(this.cfg.cost * 0.7 * Math.pow(1.5, this.lvl)); }
+        sell() { 
+            let tot = this.cfg.cost; for(let i=1; i<this.lvl; i++) tot += Math.floor(this.cfg.cost * 0.7 * Math.pow(1.5, i));
+            return Math.floor(tot * 0.5);
+        }
+        update() {
+            if(this.cd > 0) this.cd--;
+            this.tgt = null; let maxP = -1;
+            for(let e of enemies) {
+                if(Math.hypot(e.x - this.x, e.y - this.y) <= this.st.range) {
+                    if(e.idx > maxP) { maxP = e.idx; this.tgt = e; }
+                }
+            }
+            if(this.tgt) {
+                this.ang = Math.atan2(this.tgt.y - this.y, this.tgt.x - this.x);
+                if(this.st.type === 'laser' || this.st.type === 'ice') {
+                    if(this.cd <= 0) {
+                        this.tgt.hit(this.st.damage);
+                        if(this.st.type==='ice') this.tgt.frozen = 20;
+                        if(Math.random()>0.7) particles.push(new Part(this.tgt.x, this.tgt.y, this.st.color, 1));
+                        this.cd = this.st.cooldown;
+                        if(Math.random()>0.8) AudioSys.play(this.st.type==='ice'?600:200, 'sine', 0.05, 0.02);
+                    }
+                } else if(this.st.type === 'tesla') {
+                    if(this.cd <= 0) { this.zap(this.tgt); this.cd = this.st.cooldown; }
+                } else {
+                    if(this.cd <= 0) { this.fire(); this.cd = this.st.cooldown; }
+                }
+            }
+        }
+        zap(t) {
+            AudioSys.play(700, 'sawtooth', 0.1);
+            let ch = [t], cur = t, max = 2 + Math.floor(this.lvl/2);
+            for(let i=0; i<max; i++) {
+                let n = null, min = 150;
+                for(let e of enemies) {
+                    if(!ch.includes(e)) { let d = Math.hypot(e.x - cur.x, e.y - cur.y); if(d<min) { min=d; n=e; } }
+                }
+                if(n) { ch.push(n); cur = n; } else break;
+            }
+            ctx.beginPath(); ctx.moveTo(this.x, this.y);
+            ch.forEach(e => { e.hit(this.st.damage); ctx.lineTo(e.x, e.y); particles.push(new Part(e.x, e.y, '#fff', 2)); });
+            ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.shadowBlur=10; ctx.shadowColor='#0ff'; ctx.stroke(); ctx.shadowBlur=0;
+        }
+        fire() {
+            const f = {'basic':400,'rapid':600,'sniper':200,'missile':100,'plasma':300};
+            AudioSys.play(f[this.st.type]||440, 'square', 0.1, 0.05);
+            projectiles.push(new Proj(this.x, this.y, this.tgt, this.st));
+        }
+        draw(c) {
+            c.save(); c.translate(this.x, this.y);
+            if(gameState.selectedTower === this) {
+                c.beginPath(); c.arc(0,0,this.st.range,0,Math.PI*2); c.strokeStyle='rgba(255,255,255,0.3)'; c.stroke();
+                c.beginPath(); c.arc(0,0,25,0,Math.PI*2); c.strokeStyle='#0f0'; c.stroke();
+            }
+            if(this.lvl>1) { c.fillStyle='#ff0'; c.font="10px Arial"; c.fillText("L"+this.lvl, 10, -10); }
+            c.fillStyle='#111'; c.beginPath(); c.arc(0,0,16,0,Math.PI*2); c.fill(); c.strokeStyle=this.st.color; c.lineWidth=2; c.stroke();
+            c.rotate(this.ang); c.fillStyle=this.st.color;
+            if(this.st.type==='missile') { c.fillRect(-6,-8,20,16); c.fillStyle='#333'; c.fillRect(0,-4,22,8); }
+            else if(this.st.type==='laser') {
+                c.fillStyle='#fff'; c.beginPath(); c.moveTo(0,0); c.lineTo(15,-5); c.lineTo(15,5); c.fill();
+                if(this.tgt) {
+                    c.restore(); c.beginPath(); c.moveTo(this.x, this.y); c.lineTo(this.tgt.x, this.tgt.y);
+                    c.lineWidth=this.st.type==='ice'?2:4; c.strokeStyle=this.st.color; c.globalAlpha=0.6; c.stroke(); c.globalAlpha=1; return;
+                }
+            } else if(this.st.type==='tesla') {
+                c.beginPath(); c.arc(0,0,8,0,Math.PI*2); c.fill(); c.fillStyle='#aaf'; c.fillRect(2,-2,12,4);
+            } else if(this.st.type==='plasma') {
+                c.beginPath(); c.moveTo(0,0); c.arc(0,0,10,0,Math.PI*2); c.fill(); c.fillStyle='#fff'; c.fillRect(5,-2,10,4);
+            } else c.fillRect(0,-6,24,12);
+            c.beginPath(); c.arc(0,0,8,0,Math.PI*2); c.fillStyle='#222'; c.fill(); c.restore();
+        }
+    }
+
+    class Proj {
+        constructor(x,y,t,s) { this.x=x;this.y=y;this.t=t;this.d=s.damage;this.c=s.color;this.tp=s.type;this.sp=this.tp==='sniper'?15:10;this.a=true; if(this.tp==='missile'||this.tp==='plasma') this.sp=6; }
+        update() {
+            if(this.tp!=='missile' && this.t && this.t.hp>0) {
+                let a = Math.atan2(this.t.y-this.y, this.t.x-this.x);
+                this.vx=Math.cos(a)*this.sp; this.vy=Math.sin(a)*this.sp;
+            } else if(!this.vx) {
+                let a = Math.atan2(this.t.y-this.y, this.t.x-this.x);
+                this.vx=Math.cos(a)*this.sp; this.vy=Math.sin(a)*this.sp;
+            }
+            this.x+=this.vx; this.y+=this.vy;
+            let h = (this.t && this.t.hp>0) ? this.t : null;
+            if(!h) for(let e of enemies) if(Math.hypot(e.x-this.x,e.y-this.y)<e.rad+10) { h=e; break; }
+            if(h && Math.hypot(this.x-h.x,this.y-h.y)<20) this.hit(h);
+            else if(this.x<0||this.x>GAME_W||this.y<0||this.y>GAME_H) this.a=false;
+        }
+        hit(t) {
+            this.a=false;
+            if(this.tp==='missile') {
+                AudioSys.noise(0.2,0.2); particles.push(new Part(this.x,this.y,'#f40',0,50));
+                for(let e of enemies) if(Math.hypot(e.x-this.x,e.y-this.y)<80) e.hit(this.d);
+            } else if(this.tp==='plasma') {
+                t.hit(this.d); t.burn=120; particles.push(new Part(this.x,this.y,'#f96',2));
+            } else {
+                t.hit(this.d); AudioSys.play(100,'sawtooth',0.05); particles.push(new Part(this.x,this.y,this.c,2));
+            }
+        }
+        draw(c) { c.fillStyle=this.c; c.beginPath(); c.arc(this.x,this.y,this.tp==='missile'?5:3,0,Math.PI*2); c.fill(); }
+    }
+
+    class Part {
+        constructor(x,y,c,s,fs=0) { this.x=x;this.y=y;this.c=c;this.l=1.0;this.dec=0.03+Math.random()*0.03;
+            if(fs>0) { this.sz=fs; this.exp=true; this.dec=0.1; }
+            else { this.sz=Math.random()*3+2; let a=Math.random()*Math.PI*2, sp=Math.random()*s; this.vx=Math.cos(a)*sp; this.vy=Math.sin(a)*sp; }
+        }
+        update() { if(!this.exp){this.x+=this.vx;this.y+=this.vy;} this.l-=this.dec; }
+        draw(c) { c.globalAlpha=this.l; c.fillStyle=this.c;
+            if(this.exp) { c.beginPath(); c.arc(this.x,this.y,this.sz*(2-this.l),0,Math.PI*2); c.fill(); }
+            else c.fillRect(this.x,this.y,this.sz,this.sz);
+            c.globalAlpha=1;
+        }
+    }
+
+    class FText {
+        constructor(x,y,t,c){this.x=x;this.y=y;this.t=t;this.c=c;this.l=1;}
+        update(){this.y-=0.5;this.l-=0.02;}
+        draw(c){c.globalAlpha=this.l;c.fillStyle=this.c;c.font="bold 12px sans-serif";c.fillText(this.t,this.x,this.y);c.globalAlpha=1;}
+    }
+
+    // --- LOGIC & INPUT ---
+    let dragId = -1; let mX=0, mY=0;
+
+    function startDrag(e, id) {
+        if(!gameState.isRunning) return;
+        if(gameState.selectedTower) deselectTower();
+        if(gameState.money < TOWER_TYPES[id].cost) { AudioSys.play(150,'sawtooth',0.2); return; }
+        dragId = id;
+        // Important for mobile to prevent scroll while dragging from tower list
+        // but we only prevent if we really started a drag
+        // e.preventDefault(); // removed to allow scrolling the list if needed, careful
+    }
+
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        // Mouse vs Touch
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - r.left) * (GAME_W/r.width), y: (cy - r.top) * (GAME_H/r.height) };
+    }
+
+    ['mousemove','touchmove'].forEach(ev => window.addEventListener(ev, e => {
+        const p = getPos(e); mX = p.x; mY = p.y;
+        // If dragging, prevent scroll on mobile
+        if(dragId!==-1 && e.type==='touchmove') e.preventDefault();
+    }, {passive:false}));
+
+    ['mouseup','touchend'].forEach(ev => window.addEventListener(ev, e => {
+        if(dragId !== -1) { tryBuild(); dragId = -1; }
+    }));
+
+    canvas.addEventListener('mousedown', e => handleTap(e));
+    canvas.addEventListener('touchstart', e => {
+        const p = getPos(e); mX=p.x; mY=p.y; handleTap(e);
+    }, {passive:false});
+
+    function handleTap(e) {
+        if(!gameState.isRunning || dragId!==-1) return;
+        // prevent default on canvas touches to stop weird behaviors
+        if(e.type==='touchstart') e.preventDefault(); 
+        
+        let tHit = null;
+        for(let t of towers) if(Math.hypot(t.x-mX, t.y-mY)<30) { tHit=t; break; }
+        if(tHit) selectTower(tHit); else deselectTower();
+    }
+
+    function tryBuild() {
+        if(mX<0||mX>GAME_W||mY<0||mY>GAME_H) return;
+        if(coll(mX,mY)) { AudioSys.play(150,'sawtooth',0.2); texts.push(new FText(mX,mY,"X","#f00")); return; }
+        let c = TOWER_TYPES[dragId].cost;
+        if(gameState.money >= c) {
+            addMoney(-c); towers.push(new Tower(mX, mY, dragId));
+            AudioSys.play(600,'sine',0.1); for(let i=0;i<8;i++) particles.push(new Part(mX,mY,'#0ff',3));
+        }
+    }
+    function coll(x,y) {
+        for(let i=0;i<path.length-1;i++) if(d2s({x,y},path[i],path[i+1])<35) return true;
+        for(let t of towers) if(Math.hypot(t.x-x,t.y-y)<30) return true;
+        return false;
+    }
+    function d2s(p,v,w) {
+        let l2=(v.x-w.x)**2+(v.y-w.y)**2; if(l2==0) return Math.hypot(p.x-v.x,p.y-v.y);
+        let t=((p.x-v.x)*(w.x-v.x)+(p.y-v.y)*(w.y-v.y))/l2; t=Math.max(0,Math.min(1,t));
+        return Math.hypot(p.x-(v.x+t*(w.x-v.x)),p.y-(v.y+t*(w.y-v.y)));
+    }
+
+    // --- UI ---
+    function selectTower(t) {
+        gameState.selectedTower=t;
+        document.getElementById('arsenalPanel').style.display='none';
+        document.getElementById('inspectorPanel').style.display='block';
+        updInsp(); AudioSys.play(1000,'sine',0.05);
+    }
+    function deselectTower() {
+        gameState.selectedTower=null;
+        document.getElementById('arsenalPanel').style.display='flex';
+        document.getElementById('inspectorPanel').style.display='none';
+    }
+    function updInsp() {
+        const t = gameState.selectedTower; if(!t) return;
+        document.getElementById('inspName').innerText = t.cfg.name;
+        document.getElementById('inspLevel').innerText = t.lvl;
+        document.getElementById('inspDmg').innerText = t.st.damage;
+        document.getElementById('inspRange').innerText = t.st.range;
+        const c = t.cost();
+        document.getElementById('upgradeCostText').innerText = `$${c}`;
+        document.getElementById('btnUpgrade').disabled = (gameState.money < c);
+        document.getElementById('sellPriceText').innerText = `$${t.sell()}`;
+    }
+    function upgradeSelected() {
+        const t = gameState.selectedTower; if(!t) return;
+        let c = t.cost();
+        if(gameState.money >= c) { addMoney(-c); t.upgrade(); updInsp(); }
+    }
+    function sellSelected() {
+        const t = gameState.selectedTower; if(!t) return;
+        addMoney(t.sell()); towers=towers.filter(to=>to!==t);
+        particles.push(new Part(t.x,t.y,'#fff',2,30)); deselectTower();
+    }
+
+    function loop() {
+        if(gameState.isRunning && !gameState.isPaused) {
+            for(let i=0; i<gameState.speedMultiplier; i++) logic();
+        }
+        draw(); requestAnimationFrame(loop);
+    }
+    
+    let spwn=0, tmr=0;
+    function logic() {
+        if(gameState.isWaveActive) {
+            tmr++;
+            if(spwn>0 && tmr>=40) {
+                enemies.push(new Enemy(gameState.wave, (gameState.wave%5===0 && spwn===1)));
+                spwn--; tmr=0;
+            } else if(spwn===0 && enemies.length===0) endWave();
+        }
+        towers.forEach(t=>t.update());
+        projectiles.forEach(p=>p.update()); projectiles=projectiles.filter(p=>p.a);
+        enemies.forEach(e=>e.update()); enemies=enemies.filter(e=>e.hp>0);
+        particles.forEach(p=>p.update()); particles=particles.filter(p=>p.l>0);
+        texts.forEach(t=>t.update()); texts=texts.filter(t=>t.l>0);
+        if(gameState.selectedTower) updInsp();
+        const b = enemies.find(e=>e.boss);
+        if(b) document.getElementById('bossHealth').style.width=(b.hp/b.maxHp*100)+'%';
+    }
+
+    function draw() {
+        ctx.fillStyle='#13131f'; ctx.fillRect(0,0,GAME_W,GAME_H);
+        let o = (Date.now()/50)%50; ctx.strokeStyle='rgba(255,0,0,0.05)'; ctx.lineWidth=1; ctx.beginPath();
+        for(let i=0;i<GAME_W;i+=50){ctx.moveTo(i,0);ctx.lineTo(i,GAME_H);}
+        for(let i=o;i<GAME_H;i+=50){ctx.moveTo(0,i);ctx.lineTo(GAME_W,i);} ctx.stroke();
+
+        ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=40;ctx.strokeStyle='#1a0505';ctx.shadowBlur=10;ctx.shadowColor='#f00';
+        ctx.beginPath();ctx.moveTo(path[0].x,path[0].y); for(let i=1;i<path.length;i++) ctx.lineTo(path[i].x,path[i].y); ctx.stroke();
+        ctx.shadowBlur=0; ctx.lineWidth=2;ctx.strokeStyle='#500';ctx.stroke();
+
+        towers.forEach(t=>t.draw(ctx)); enemies.forEach(e=>e.draw(ctx));
+        projectiles.forEach(p=>p.draw(ctx)); particles.forEach(p=>p.draw(ctx)); texts.forEach(t=>t.draw(ctx));
+
+        if(dragId!==-1) {
+            const t = TOWER_TYPES[dragId];
+            ctx.beginPath(); ctx.arc(mX,mY,t.range,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fill();
+            ctx.fillStyle=coll(mX,mY)?'rgba(255,0,0,0.5)':'rgba(0,255,0,0.5)';
+            ctx.beginPath(); ctx.arc(mX,mY,15,0,Math.PI*2); ctx.fill();
+        }
+    }
+
+    function startGame(){ AudioSys.init(); resize(); document.getElementById('startScreen').classList.add('hidden'); reset(); gameState.isRunning=true; loop(); }
+    function resetGame(){ document.getElementById('gameOverScreen').classList.add('hidden'); reset(); gameState.isRunning=true; updUI(); }
+    function reset(){ gameState.money=550; gameState.lives=1; gameState.wave=1; gameState.isWaveActive=false; enemies=[];towers=[];projectiles=[];particles=[];texts=[]; deselectTower(); document.getElementById('startWaveBtn').classList.remove('opacity-50'); }
+    function startWave(){ if(gameState.isWaveActive)return; gameState.isWaveActive=true; AudioSys.play(400,'sine',0.5); spwn=5+Math.floor(gameState.wave*1.5); document.getElementById('startWaveBtn').classList.add('opacity-50'); }
+    function endWave(){ gameState.isWaveActive=false; gameState.wave++; addMoney(100+gameState.wave*15); texts.push(new FText(GAME_W/2,GAME_H/2,"CLEAR","#fff")); document.getElementById('startWaveBtn').classList.remove('opacity-50'); updUI(); }
+    function loseLife(){ gameState.lives=0; AudioSys.play(100,'square',0.8); gameState.isRunning=false; document.getElementById('finalWave').innerText=gameState.wave; document.getElementById('gameOverScreen').classList.remove('hidden'); updUI(); }
+    function addMoney(n){ gameState.money+=n; updUI(); }
+    function updUI(){
+        document.getElementById('livesDisplay').innerText=gameState.lives; document.getElementById('moneyDisplay').innerText="$"+gameState.money; document.getElementById('waveDisplay').innerText=gameState.wave;
+        TOWER_TYPES.forEach((t,i)=>{
+            const e=document.getElementById(`tower-btn-${i}`);
+            if(e) { if(gameState.money<t.cost) e.classList.add('locked'); else e.classList.remove('locked'); }
+        });
+        if(gameState.selectedTower) updInsp();
+    }
+    function setSpeed(x){gameState.speedMultiplier=x;}
+    function toggleMute(){AudioSys.muted=!AudioSys.muted;document.getElementById('muteBtn').innerText=AudioSys.muted?'🔇':'🔊';}
+
+    function resize() {
+        const w = document.getElementById('canvas-wrapper');
+        const aspect = GAME_W/GAME_H;
+        let nw = w.clientWidth, nh = w.clientHeight;
+        if(nw/nh > aspect) nw = nh*aspect; else nh = nw/aspect;
+        canvas.style.width=nw+'px'; canvas.style.height=nh+'px';
+        canvas.width=GAME_W; canvas.height=GAME_H;
+    }
+    window.addEventListener('resize', resize);
+    window.onload = () => { initSidebar(); resize(); };
+</script>
+</body>
+</html>
