@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V5.1 (Balanced & Extended)</title>
+    <title>TowerDefense - Neon Zombie V5.2 (Fix & Balanced)</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -84,7 +84,6 @@
         });
 
         window.ScoreManager = {
-            // Se mantiene el parámetro verifiedData por compatibilidad, pero siempre se asume verificado
             saveScore: async (wave, difficulty, verifiedData) => { 
                 if (!window.AuthManager.user) return;
 
@@ -96,7 +95,7 @@
                         wave: wave,
                         difficulty: difficulty,
                         timestamp: Date.now(),
-                        verified: true // Siempre true para partidas locales
+                        verified: true 
                     });
                     document.getElementById('save-msg').innerText = "PUNTUACIÓN GUARDADA CON ÉXITO";
                 } catch (e) {
@@ -130,8 +129,8 @@
             --danger: #ff2a6d;
             --text-main: #e0e6ed;
             --border-color: #2a2a40;
-            --login-color: #ffb74d; /* Naranja/Ámbar claro para login */
-            --register-color: #81c784; /* Verde claro para registro */
+            --login-color: #ffb74d; 
+            --register-color: #81c784; 
         }
 
         * { box-sizing: border-box; }
@@ -234,7 +233,6 @@
         .btn-sell { background: linear-gradient(180deg, #b71c1c, #680f0f); border-color: #ef5350; margin-top: 5px; }
         .btn-start { background: linear-gradient(180deg, #01579b, #002f55); border-color: #0288d1; width: 100%; color: #81d4fa; letter-spacing: 1px;}
         
-        /* Estilos de botones de autenticación en el menú */
         .btn-menu-auth {
             padding: 15px 30px; font-size: 1.2rem; border: 2px solid #555; background: rgba(0,0,0,0.5); 
             color: #aaa; cursor: pointer; transition: 0.2s; border-radius: 4px; text-transform: uppercase; 
@@ -273,8 +271,6 @@
 
         #global-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 8, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(8px); transition: opacity 0.5s ease, visibility 0.5s; opacity: 1; visibility: visible; }
         #global-overlay.hidden { opacity: 0; pointer-events: none; visibility: hidden; }
-
-        /* Eliminamos #security-status */
 
         .title-big {
             font-size: 4rem; color: var(--accent); text-transform: uppercase; letter-spacing: 8px;
@@ -325,8 +321,6 @@
 <div id="game-wrapper">
     <!-- BARRA SUPERIOR PARA MOSTRAR JUGADOR AUTENTICADO -->
     <div class="auth-bar">
-        <!-- Eliminado el div id="security-status" -->
-        <!-- Solo muestra el nombre del jugador y el botón de cerrar sesión si está logeado -->
         <div id="logout-container" style="display: none; align-items: center; gap: 10px;">
             <div id="user-display"></div>
             <button class="btn btn-auth" onclick="window.AuthManager.logout()">CERRAR SESIÓN</button>
@@ -335,7 +329,7 @@
 
     <!-- PANTALLA DE OVERLAY GLOBAL (MENÚ DE INICIO) -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V5.0</div>
+        <div class="title-big">NEON DEFENSE V5.2</div>
 
         <div id="menu-content">
             <!-- CONTENEDOR DE BOTONES DE LOGIN/REGISTER -->
@@ -353,8 +347,6 @@
             </div>
             <button class="btn" style="margin-top: 30px; width: 200px; border-color: var(--accent); color: var(--accent);" onclick="Game.openLeaderboard()">VER RANKING GLOBAL</button>
         </div>
-
-        <!-- Eliminado el div id="connection-msg" -->
     </div>
     
     <!-- PANELES LATERALES -->
@@ -428,7 +420,6 @@
 <div id="drag-ghost"></div>
 
 <script>
-// --- CONFIGURACIÓN DE SEGURIDAD (ELIMINADA) ---
 
 const TILE = 40; const COLS = 15; const ROWS = 18;
 
@@ -453,31 +444,31 @@ const BASIC_TOWERS = {
     minigun: { name: "Vulcan", symbol: "🎰", type: "minigun", color: PALETTE.minigun, cost: 500, dmg: 11, range: 4*TILE, rate: 5, desc: "Brrrt.", upgrades: [{cost:600, text:"+4 Dmg", apply:(t)=>t.dmg+=4}, {cost:900, text:"+Range", apply:(t)=>t.range+=TILE}, {cost:1200, text:"Precise", apply:(t)=>t.dmg*=1.1}, {cost:3500, text:"ULT: Hell", apply:(t)=>{t.isUlt=true;t.multiShot=2}}] },
     plasma: { name: "Inferno", symbol: "☀️", type: "plasma", color: PALETTE.plasma, cost: 350, dmg: 7, range: 3.5*TILE, rate: 6, splash: 1.65*TILE, desc: "Plasma.", upgrades: [{cost:900, text:"+Area", apply:(t)=>t.splash*=1.2}, {cost:1000, text:"+30 DPS", apply:(t)=>t.dmg+=3}, {cost:1200, text:"Napalm", apply:(t)=>t.burn=true}, {cost:3000, text:"ULT: Supernova", apply:(t)=>{t.isUlt=true;t.splash*=1.5;t.dmg*=2.25}}] },
     neutron: { name: "Neutron", symbol: "⚛️", type: "neutron", color: PALETTE.neutron, cost: 1200, dmg: 80, range: 5*TILE, rate: 20, ignoreArmor: true, desc: "Puro.", upgrades: [{cost:1000, text:"+40 Dmg", apply:(t)=>t.dmg+=40}, {cost:1500, text:"Fast", apply:(t)=>t.rate=15}, {cost:2000, text:"Pierce", apply:(t)=>t.pierce=5}, {cost:5000, text:"ULT: Collider", apply:(t)=>{t.isUlt=true;t.dmg*=3;t.splash=2*TILE}}] },
-    // --- TITAN NERFED & BALANCED ---
     titan: { 
         name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, 
-        cost: 2800, // NERF: Coste aumentado (era 2000)
-        dmg: 450,   // NERF: Daño reducido (era 600)
-        range: 6*TILE, // NERF: Rango reducido (era 7)
-        rate: 140, // NERF: Más lento (era 120)
-        splash: 2.2*TILE, // NERF: Area reducida (era 3)
-        critChance: 0.25, // NERF: Crit chance reducida (era 0.5)
-        critMult: 2.5, // NERF: Multiplicador reducido (era 3)
+        cost: 2800, 
+        dmg: 450,   
+        range: 6*TILE, 
+        rate: 140, 
+        splash: 2.2*TILE, 
+        critChance: 0.25, 
+        critMult: 2.5, 
         desc: "Mini-Boss.", 
         upgrades: [
             {cost:2500, text:"+300 Dmg", apply:(t)=>t.dmg+=300}, 
-            {cost:4000, text:"Semi-Global", apply:(t)=>t.range=15*TILE}, // NERF: Ya no es 30 tiles
+            {cost:4000, text:"Semi-Global", apply:(t)=>t.range=15*TILE}, 
             {cost:6000, text:"Fast", apply:(t)=>t.rate*=0.8}, 
-            {cost:20000, text:"ULT: DOOMSDAY", apply:(t)=>{t.isUlt=true;t.dmg=5000;t.splash=5*TILE}} // NERF: Splash ult reducido
+            {cost:20000, text:"ULT: DOOMSDAY", apply:(t)=>{t.isUlt=true;t.dmg=5000;t.splash=5*TILE}} 
         ] 
     },
-    // NUEVAS TORRES AÑADIDAS
     gamma: { name: "Gamma", symbol: "☢️", type: "gamma", color: PALETTE.gamma, cost: 1800, dmg: 80, range: 5*TILE, rate: 12, desc: "RAD.", upgrades: [{cost:2000, text:"Irradiate", apply:(t)=>t.burn=true}, {cost:3000, text:"+80 Dmg", apply:(t)=>t.dmg+=80}, {cost:4000, text:"Fast", apply:(t)=>t.rate=8}, {cost:12000, text:"ULT: MELTDOWN", apply:(t)=>{t.isUlt=true;t.dmg=400;t.rate=6;t.burn=true;}}] },
     vortex: { name: "Vortex", symbol: "🌀", type: "vortex", color: PALETTE.vortex, cost: 2800, dmg: 200, range: 4*TILE, rate: 45, splash: 3*TILE, desc: "Gravity.", upgrades: [{cost:3000, text:"Event Horizon", apply:(t)=>t.splash=4*TILE}, {cost:4000, text:"Crush", apply:(t)=>t.dmg+=200}, {cost:5000, text:"Pull", apply:(t)=>t.slow=0.3}, {cost:20000, text:"ULT: SINGULARITY", apply:(t)=>{t.isUlt=true;t.dmg=3000;t.splash=5*TILE;}}] },
-    omega: { name: "Omega", symbol: "♾️", type: "omega", color: PALETTE.omega, cost: 10000, dmg: 5000, range: 10*TILE, rate: 60, ignoreArmor: true, desc: "GOD.", upgrades: [{cost:15000, text:"Reality Break", apply:(t)=>t.dmg+=5000}, {cost:20000, text:"Omnipresent", apply:(t)=>t.range=30*TILE}, {cost:50000, text:"Erasure", apply:(t)=>{t.dmg*=5;t.splash=6*TILE}}, {cost:100000, text:"ULT: THE END", apply:(t)=>{t.isUlt=true;t.dmg=99999;t.rate=10;}}] }};
+    // CORRECCIÓN OMEGA: Se ha añadido "splash: 3*TILE" para que haga daño al impactar.
+    omega: { name: "Omega", symbol: "♾️", type: "omega", color: PALETTE.omega, cost: 10000, dmg: 5000, range: 10*TILE, rate: 60, ignoreArmor: true, splash: 3*TILE, desc: "GOD.", upgrades: [{cost:15000, text:"Reality Break", apply:(t)=>t.dmg+=5000}, {cost:20000, text:"Omnipresent", apply:(t)=>t.range=30*TILE}, {cost:50000, text:"Erasure", apply:(t)=>{t.dmg*=5;t.splash=6*TILE}}, {cost:100000, text:"ULT: THE END", apply:(t)=>{t.isUlt=true;t.dmg=99999;t.rate=10;}}] }};
 
 let CURRENT_ARSENAL = BASIC_TOWERS;
 
+// CORRECCIÓN BOSSES: HP masivamente reducido para las rondas 30-50.
 const ENEMY_DATA = {
     basic: { hp: 12, speed: 1.5, money: 6, color: '#e0e0e0', radius: 10, glow: 'rgba(255,255,255,0.5)' },
     fast: { hp: 10, speed: 3.2, money: 8, color: '#ffea00', radius: 8, glow: 'rgba(255,234,0,0.5)' },
@@ -485,15 +476,14 @@ const ENEMY_DATA = {
     special: { hp: 25, speed: 1.6, money: 15, color: '#d500f9', radius: 11, immune: true, glow: 'rgba(213,0,249,0.5)' },
     white_guard: { hp: 3000, speed: 0.6, money: 150, color: '#ffffff', radius: 16, immune: false, glow: 'rgba(255,255,255,0.9)', white: true },
     boss: { hp: 400, speed: 0.5, money: 200, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' },
-    white_boss: { hp: 15000, speed: 0.4, money: 1000, color: '#ffffff', radius: 25, immune: true, glow: 'rgba(255,255,255,1)', white: true },
-    // --- NUEVOS BOSSES PARA VARIEDAD ---
-    mecha_hydra: { hp: 25000, speed: 0.35, money: 2000, color: '#00ff00', radius: 28, immune: false, glow: 'rgba(0,255,0,0.8)' },
-    cyber_angel: { hp: 18000, speed: 1.2, money: 2500, color: '#00ccff', radius: 20, immune: true, glow: 'rgba(0,200,255,1)' },
-    galactic_devourer: { hp: 40000, speed: 0.25, money: 3000, color: '#ff00ff', radius: 30, immune: true, glow: 'rgba(255,0,255,0.8)' },
-    void_boss: { hp: 60000, speed: 0.35, money: 4000, color: '#311b92', radius: 28, immune: true, glow: 'rgba(100,0,255,1)' },
-    chaos_lord: { hp: 500000, speed: 0.3, money: 15000, color: '#000000', radius: 35, immune: true, glow: 'rgba(255,0,0,1)', white: true }, 
-    neon_god: { hp: 2000000, speed: 0.25, money: 50000, color: '#ffd700', radius: 32, immune: true, glow: 'rgba(255,215,0,1)' },
-    entity_zero: { hp: 10000000, speed: 0.2, money: 1000000, color: '#fff', radius: 40, immune: true, glow: 'rgba(255,255,255,1)' }};
+    white_boss: { hp: 3500, speed: 0.4, money: 1000, color: '#ffffff', radius: 25, immune: true, glow: 'rgba(255,255,255,1)', white: true }, // Reducido de 15k a 3.5k
+    mecha_hydra: { hp: 5000, speed: 0.35, money: 2000, color: '#00ff00', radius: 28, immune: false, glow: 'rgba(0,255,0,0.8)' }, // Reducido de 25k a 5k
+    cyber_angel: { hp: 4000, speed: 1.2, money: 2500, color: '#00ccff', radius: 20, immune: true, glow: 'rgba(0,200,255,1)' }, // Reducido de 18k a 4k
+    galactic_devourer: { hp: 8000, speed: 0.25, money: 3000, color: '#ff00ff', radius: 30, immune: true, glow: 'rgba(255,0,255,0.8)' }, // Reducido de 40k a 8k
+    void_boss: { hp: 12000, speed: 0.35, money: 4000, color: '#311b92', radius: 28, immune: true, glow: 'rgba(100,0,255,1)' }, // Reducido de 60k a 12k
+    chaos_lord: { hp: 50000, speed: 0.3, money: 15000, color: '#000000', radius: 35, immune: true, glow: 'rgba(255,0,0,1)', white: true }, // Reducido de 500k a 50k
+    neon_god: { hp: 100000, speed: 0.25, money: 50000, color: '#ffd700', radius: 32, immune: true, glow: 'rgba(255,215,0,1)' }, // Reducido de 2M a 100k
+    entity_zero: { hp: 500000, speed: 0.2, money: 1000000, color: '#fff', radius: 40, immune: true, glow: 'rgba(255,255,255,1)' }}; // Reducido de 10M a 500k
 
 const AudioEngine = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
@@ -515,18 +505,16 @@ class Enemy extends Entity {
         this.idx = 0;
         const data = ENEMY_DATA[type];
         
-        // --- DIFFICULTY SCALING (BALANCED) ---
-        // Factor de ola inicial (más suave: 0.25x en lugar de 0.4x)
-        let waveMult = 1 + (Game.wave * 0.25); 
+        // --- DIFFICULTY SCALING (RELAJADO) ---
+        // Factor de ola inicial reducido de 0.25 a 0.15 para una curva más suave.
+        let waveMult = 1 + (Game.wave * 0.15); 
         
-        // EXPONENTIAL CURVE AFTER WAVE 50 (se mantiene pero se ajusta la base)
+        // EXPONENTIAL CURVE AFTER WAVE 50
         if (Game.wave > 50) {
-            // Aplicamos un crecimiento más lento para permitir que las torres grandes escalen.
             waveMult *= Math.pow(1.06, Game.wave - 50);
         }
         // HYPER EXPONENTIAL CURVE AFTER WAVE 80
         if (Game.wave > 80) {
-            // Se usa 1.1 para suavizar la curva hiper-exponencial
             waveMult *= Math.pow(1.1, Game.wave - 80);
         }
         
@@ -606,7 +594,6 @@ class Tower extends Entity {
         if(this.cooldown > 0) this.cooldown--;
         this.target = this.findTarget();
         
-        // Verificar si la torre es de RAYO CONTINUO (Laser o Omega ULT)
         const isContinuousBeam = this.key === 'laser' || (this.key === 'omega' && this.isUlt);
 
         if(this.target) {
@@ -616,7 +603,6 @@ class Tower extends Entity {
             if (isContinuousBeam) {
                 this.isFiring = true;
                 if (this.cooldown <= 0) {
-                    // Daño instantáneo y reinicio de cooldown para simular DPS
                     let dmg = this.dmg * (this.efficiency || 1);
                     Game.damageEnemy(this.target, dmg);
                     Game.addJuice('particle', this.target.x, this.target.y, 1, this.color); 
@@ -624,7 +610,7 @@ class Tower extends Entity {
                     this.cooldown = this.rate; 
                 }
             } else {
-                this.isFiring = false; // Solo se dispara un proyectil, no es continuo
+                this.isFiring = false;
                 if (this.cooldown <= 0) {
                     this.shoot(this.target); 
                     this.cooldown = Math.max(2, this.rate); 
@@ -710,7 +696,6 @@ class Tower extends Entity {
         }
         ctx.restore();
         
-        // CORRECCIÓN: Usar la variable local isContinuousBeam para el dibujo también
         const isContinuousBeam = this.key === 'laser' || (this.key === 'omega' && this.isUlt);
 
         if(isContinuousBeam) {
@@ -797,10 +782,8 @@ const Game = {
     money: 150, lives: 20, wave: 1, difficulty: 0.1, enemies: [], towers: [], projectiles: [], particles: [], waveQueue: [], 
     spawnTimer: 0, playing: false, speed: 1, shake: 0, selectedTower: null, frames: 0, map: ZOMBIE_MAP, waypoints: [],
     autoStartTimer: 0, autoStartMax: 600, isAutoStarting: false,
-    authMode: 'login', // Nuevo: Modo de autenticación (login o register)
-    
-    // --- VARIABLES DE JUEGO LOCAL (RNG y SEED) ---
-    rngSeed: 12345, // Semilla inicial
+    authMode: 'login', 
+    rngSeed: 12345,
 
     init() { 
         this.renderShop(); 
@@ -809,18 +792,14 @@ const Game = {
         this.canvas.addEventListener('mousemove', e => this.handleMove(e)); 
         document.addEventListener('mouseup', e => this.handleDragEnd(e)); 
         this.waypoints = this.map.points.map(p => ({x: p.c*TILE+TILE/2, y: p.r*TILE+TILE/2}));
-        this.rngSeed = Date.now() % 2147483647; // Inicializa la semilla RNG con la hora actual
+        this.rngSeed = Date.now() % 2147483647; 
     },
 
-    // --- RNG LOCAL (Linear Congruential Generator) ---
     random() {
         this.rngSeed = (this.rngSeed * 16807) % 2147483647;
-        return (this.rngSeed - 1) / 2147483646; // Normaliza entre 0 y 1
+        return (this.rngSeed - 1) / 2147483646; 
     },
 
-    // --- ELIMINADAS: startSession, validateSession ---
-
-    // Función wrapper para iniciar desde botón (Llama directamente a beginGameLoop)
     start(diff) {
         this.difficulty = diff;
         this.beginGameLoop();
@@ -831,22 +810,16 @@ const Game = {
         if(diff >= 0.20) this.lives = 1; else if(diff >= 0.15) this.lives = 3; else if(diff >= 0.10) this.lives = 10; else this.lives = 20;                             
         document.getElementById('global-overlay').classList.add('hidden'); 
         document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
-        
-        // ** SOLUCIÓN: Eliminada la línea que intentaba acceder a 'connection-msg' **
-        // document.getElementById('connection-msg').style.display = 'none'; 
-        
         document.getElementById('menu-content').style.display = 'block';
 
         this.playing = true; this.money = 250; this.wave = 1; CURRENT_ARSENAL = BASIC_TOWERS;
         this.enemies = []; this.towers = []; this.projectiles = []; this.particles = []; this.waveQueue = [];
         this.frames = 0;
-        this.rngSeed = Date.now() % 2147483647; // Nueva semilla para cada partida
+        this.rngSeed = Date.now() % 2147483647; 
         
         this.isAutoStarting = false; this.autoStartTimer = 0; this.updateAutoStartUI(); this.renderShop(); this.updateUI();
     },
     
-    // ELIMINADA: logAction
-
     reset() { document.getElementById('game-over-screen').classList.add('hidden'); document.getElementById('global-overlay').classList.remove('hidden'); document.querySelectorAll('.sidebar').forEach(el => el.classList.add('hidden')); this.playing = false; this.towers = []; document.getElementById('save-msg').innerText = ""; this.isAutoStarting = false; this.autoStartTimer = 0; this.updateAutoStartUI(); document.getElementById('validation-loader').style.display = 'none'; document.getElementById('btn-restart').style.display = 'block';},
     
     loop() { requestAnimationFrame(() => this.loop()); if(!this.playing) return; for(let i=0; i<this.speed; i++) { this.update(); this.frames++; } this.draw(); },
@@ -869,7 +842,6 @@ const Game = {
         if (this.isAutoStarting) { this.autoStartTimer -= 1; this.updateAutoStartUI(); if (this.autoStartTimer <= 0) { this.nextWave(); } }
         let lasersFiring = 0; 
         
-        // CORRECCIÓN: Usar la nueva lógica de 'isContinuousBeam' en Tower.update() para contar los láseres.
         this.towers.forEach(t => { 
             t.update(); 
             const isContinuousBeam = t.key === 'laser' || (t.key === 'omega' && t.isUlt);
@@ -906,17 +878,15 @@ const Game = {
         document.getElementById('game-wrapper').style.borderColor = '#ff2a6d'; 
         setTimeout(() => document.getElementById('game-wrapper').style.borderColor = '#2a2a40', 200); 
         
-        if(this.lives <= 0 && this.playing) { // Check playing to avoid double trigger
+        if(this.lives <= 0 && this.playing) { 
             this.playing = false; 
             const finalWave = this.wave - 1;
             
-            // UI Update
             document.getElementById('game-over-screen').classList.remove('hidden'); 
             document.getElementById('score-text').innerText = "OLEADAS RESISTIDAS: " + finalWave; 
-            document.getElementById('validation-loader').style.display = 'none'; // No hay loader
+            document.getElementById('validation-loader').style.display = 'none'; 
             document.getElementById('btn-restart').style.display = 'block';
 
-            // Guardado de Score Local (sin validación)
             if(window.AuthManager.user) { 
                 const dummyVerifiedData = { verified: true };
                 window.ScoreManager.saveScore(finalWave, this.difficulty, dummyVerifiedData); 
@@ -932,15 +902,12 @@ const Game = {
     clickStartBtn() { if (this.isAutoStarting) { this.isAutoStarting = false; this.autoStartTimer = 0; document.getElementById('wave-info').innerText = "Inicio Pausado"; this.updateAutoStartUI(); } else { this.nextWave(); } },
     
     nextWave() {
-        // ELIMINADA: logAction('nextWave', {});
-
         this.isAutoStarting = false; this.autoStartTimer = 0; this.updateAutoStartUI();
         document.getElementById('start-btn').disabled = true; document.getElementById('start-btn').innerText = "COMBATIENDO..."; document.getElementById('start-btn').style.borderColor = '#0288d1'; document.getElementById('start-btn').style.color = '#81d4fa';
         this.wave++;
         this.waveQueue = [];
         document.getElementById('wave-info').innerText = `Oleada ${this.wave} entrante...`;
 
-        // LÓGICA DE SPAWN REVISADA Y MEJORADA PARA VARIEDAD
         if (this.wave < 10) {
             const count = 6 + this.wave;
             for(let i=0; i<count; i++) this.waveQueue.push('basic');
@@ -970,9 +937,7 @@ const Game = {
                 }
             }
         } else {
-            // --- NUEVA ZONA HARDCORE (50+) ---
             
-            // Enjambres variados
             const whiteSwarmCount = 15 + Math.floor((this.wave - 50) / 2);
             for(let i=0; i<whiteSwarmCount; i++) {
                 const r = Game.random();
@@ -981,9 +946,7 @@ const Game = {
                 else this.waveQueue.push('tank');
             }
 
-            // BOSS SPAWN LOGIC: RANDOMIZED TIERS
             if (this.wave > 100) {
-                // GOD TIER - Rotation
                 const godTierBosses = ['entity_zero', 'neon_god', 'chaos_lord'];
                 const count = 1 + Math.floor((this.wave - 100) / 4);
                 
@@ -993,7 +956,6 @@ const Game = {
                 }
                 
             } else if (this.wave > 80) {
-                // CHAOS TIER
                 const chaosBosses = ['void_boss', 'chaos_lord', 'galactic_devourer'];
                 const voidCount = 2 + Math.floor((this.wave - 80) / 3);
                 
@@ -1003,7 +965,6 @@ const Game = {
                 }
 
             } else {
-                // WHITE / ELITE TIER
                 const eliteBosses = ['white_boss', 'mecha_hydra', 'cyber_angel', 'galactic_devourer'];
                 const whiteCount = 1 + Math.floor((this.wave - 50) / 2);
                 
@@ -1022,14 +983,13 @@ const Game = {
         const data = CURRENT_ARSENAL[this.selectedTower.key], nextUpg = data.upgrades[this.selectedTower.level - 1]; 
         if(nextUpg && this.money >= nextUpg.cost) { 
             this.money -= nextUpg.cost; 
-            // ELIMINADA: this.logAction('upgrade', { c: this.selectedTower.c, r: this.selectedTower.r });
             this.selectedTower.upgrade(); 
             this.updateUpgradePanel(); 
             this.updateUI(); 
             AudioEngine.play('shoot'); 
         } 
     },
-    sellTower() { if(!this.selectedTower) return; const refund = Math.floor(this.selectedTower.spent * 0.7); this.money += refund; /* ELIMINADA: this.logAction('sell', { c: this.selectedTower.c, r: this.selectedTower.r }); */ this.towers = this.towers.filter(t => t !== this.selectedTower); this.selectedTower = null; document.getElementById('upgrade-panel').style.display = 'none'; this.updateUI(); Game.addJuice('particle', 0, 0, 0, null); Game.recalcBlasterNerf(); },
+    sellTower() { if(!this.selectedTower) return; const refund = Math.floor(this.selectedTower.spent * 0.7); this.money += refund; this.towers = this.towers.filter(t => t !== this.selectedTower); this.selectedTower = null; document.getElementById('upgrade-panel').style.display = 'none'; this.updateUI(); Game.addJuice('particle', 0, 0, 0, null); Game.recalcBlasterNerf(); },
     recalcBlasterNerf() { const blasters = this.towers.filter(t => t.key === 'cannon'); const count = blasters.length; blasters.forEach(t => { if(count > 5) { const penalty = (count - 5) * 0.1; t.efficiency = Math.max(0.2, 1.0 - penalty); } else { t.efficiency = 1.0; } }); },
     draggingType: null,
     startDrag(type) { if(this.money >= CURRENT_ARSENAL[type].cost) { this.draggingType = type; const ghost = document.getElementById('drag-ghost'); ghost.style.display = 'block'; ghost.style.borderColor = CURRENT_ARSENAL[type].color; ghost.style.boxShadow = `0 0 15px ${CURRENT_ARSENAL[type].color}`; } },
@@ -1044,8 +1004,6 @@ const Game = {
                 const cost = CURRENT_ARSENAL[this.draggingType].cost; 
                 if(this.money >= cost) { 
                     this.money -= cost; 
-                    // ELIMINADA: this.logAction('build', { type: this.draggingType, c: c, r: r });
-                    
                     this.towers.push(new Tower(c, r, this.draggingType)); 
                     this.updateUI(); 
                     AudioEngine.play('hit'); 
@@ -1096,7 +1054,6 @@ const Game = {
     updateUI() { document.getElementById('lives-display').innerText = this.lives; document.getElementById('money-display').innerText = this.money; document.getElementById('wave-display').innerText = this.wave; if(this.selectedTower) this.updateUpgradePanel(); },
     toggleSpeed() { if(this.speed === 1) this.speed = 2; else if(this.speed === 2) this.speed = 4; else this.speed = 1; document.getElementById('speed-btn').innerText = "VELOCIDAD: x" + this.speed; document.getElementById('speed-btn').style.background = this.speed === 4 ? "#d500f9" : (this.speed === 2 ? "#00695c" : "#222"); },
     
-    // Función de Modal mejorada
     openModal(id, mode = 'login') { 
         const modal = document.getElementById(id);
         const header = document.getElementById('auth-modal-header');
