@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TowerDefense - Neon Zombie V5.2 (Fix & Balanced)</title>
+    <title>TowerDefense - Neon Zombie V5.6 (Full Exponential)</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -329,7 +329,7 @@
 
     <!-- PANTALLA DE OVERLAY GLOBAL (MENÚ DE INICIO) -->
     <div id="global-overlay">
-        <div class="title-big">NEON DEFENSE V5.2</div>
+        <div class="title-big">NEON DEFENSE V5.6</div>
 
         <div id="menu-content">
             <!-- CONTENEDOR DE BOTONES DE LOGIN/REGISTER -->
@@ -446,7 +446,7 @@ const BASIC_TOWERS = {
     neutron: { name: "Neutron", symbol: "⚛️", type: "neutron", color: PALETTE.neutron, cost: 1200, dmg: 80, range: 5*TILE, rate: 20, ignoreArmor: true, desc: "Puro.", upgrades: [{cost:1000, text:"+40 Dmg", apply:(t)=>t.dmg+=40}, {cost:1500, text:"Fast", apply:(t)=>t.rate=15}, {cost:2000, text:"Pierce", apply:(t)=>t.pierce=5}, {cost:5000, text:"ULT: Collider", apply:(t)=>{t.isUlt=true;t.dmg*=3;t.splash=2*TILE}}] },
     titan: { 
         name: "Titan", symbol: "👑", type: "titan", color: PALETTE.titan, 
-        cost: 2800, 
+        cost: 3500, // NERF: Coste subido de 2800 a 3500
         dmg: 450,   
         range: 6*TILE, 
         rate: 140, 
@@ -463,27 +463,42 @@ const BASIC_TOWERS = {
     },
     gamma: { name: "Gamma", symbol: "☢️", type: "gamma", color: PALETTE.gamma, cost: 1800, dmg: 80, range: 5*TILE, rate: 12, desc: "RAD.", upgrades: [{cost:2000, text:"Irradiate", apply:(t)=>t.burn=true}, {cost:3000, text:"+80 Dmg", apply:(t)=>t.dmg+=80}, {cost:4000, text:"Fast", apply:(t)=>t.rate=8}, {cost:12000, text:"ULT: MELTDOWN", apply:(t)=>{t.isUlt=true;t.dmg=400;t.rate=6;t.burn=true;}}] },
     vortex: { name: "Vortex", symbol: "🌀", type: "vortex", color: PALETTE.vortex, cost: 2800, dmg: 200, range: 4*TILE, rate: 45, splash: 3*TILE, desc: "Gravity.", upgrades: [{cost:3000, text:"Event Horizon", apply:(t)=>t.splash=4*TILE}, {cost:4000, text:"Crush", apply:(t)=>t.dmg+=200}, {cost:5000, text:"Pull", apply:(t)=>t.slow=0.3}, {cost:20000, text:"ULT: SINGULARITY", apply:(t)=>{t.isUlt=true;t.dmg=3000;t.splash=5*TILE;}}] },
-    // CORRECCIÓN OMEGA: Se ha añadido "splash: 3*TILE" para que haga daño al impactar.
-    omega: { name: "Omega", symbol: "♾️", type: "omega", color: PALETTE.omega, cost: 10000, dmg: 5000, range: 10*TILE, rate: 60, ignoreArmor: true, splash: 3*TILE, desc: "GOD.", upgrades: [{cost:15000, text:"Reality Break", apply:(t)=>t.dmg+=5000}, {cost:20000, text:"Omnipresent", apply:(t)=>t.range=30*TILE}, {cost:50000, text:"Erasure", apply:(t)=>{t.dmg*=5;t.splash=6*TILE}}, {cost:100000, text:"ULT: THE END", apply:(t)=>{t.isUlt=true;t.dmg=99999;t.rate=10;}}] }};
+    omega: { 
+        name: "Omega", symbol: "♾️", type: "omega", color: PALETTE.omega, 
+        cost: 30000, 
+        dmg: 3500,   
+        range: 10*TILE, 
+        rate: 100,   
+        ignoreArmor: true, 
+        splash: 3*TILE, 
+        desc: "GOD.", 
+        upgrades: [
+            {cost:25000, text:"Reality Break", apply:(t)=>t.dmg+=3000}, 
+            {cost:40000, text:"Omnipresent", apply:(t)=>t.range=30*TILE}, 
+            {cost:80000, text:"Erasure", apply:(t)=>{t.dmg*=3;t.splash=5*TILE}}, 
+            {cost:150000, text:"ULT: THE END", apply:(t)=>{t.isUlt=true;t.dmg=50000;t.rate=15;}} 
+        ] 
+    }
+};
 
 let CURRENT_ARSENAL = BASIC_TOWERS;
 
-// CORRECCIÓN BOSSES: HP masivamente reducido para las rondas 30-50.
+// ECONOMY NERF: Dinero por muerte reducido
 const ENEMY_DATA = {
-    basic: { hp: 12, speed: 1.5, money: 6, color: '#e0e0e0', radius: 10, glow: 'rgba(255,255,255,0.5)' },
-    fast: { hp: 10, speed: 3.2, money: 8, color: '#ffea00', radius: 8, glow: 'rgba(255,234,0,0.5)' },
-    tank: { hp: 60, speed: 0.8, money: 25, color: '#ff3d00', radius: 14, glow: 'rgba(255,61,0,0.5)' },
-    special: { hp: 25, speed: 1.6, money: 15, color: '#d500f9', radius: 11, immune: true, glow: 'rgba(213,0,249,0.5)' },
-    white_guard: { hp: 3000, speed: 0.6, money: 150, color: '#ffffff', radius: 16, immune: false, glow: 'rgba(255,255,255,0.9)', white: true },
-    boss: { hp: 400, speed: 0.5, money: 200, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' },
-    white_boss: { hp: 3500, speed: 0.4, money: 1000, color: '#ffffff', radius: 25, immune: true, glow: 'rgba(255,255,255,1)', white: true }, // Reducido de 15k a 3.5k
-    mecha_hydra: { hp: 5000, speed: 0.35, money: 2000, color: '#00ff00', radius: 28, immune: false, glow: 'rgba(0,255,0,0.8)' }, // Reducido de 25k a 5k
-    cyber_angel: { hp: 4000, speed: 1.2, money: 2500, color: '#00ccff', radius: 20, immune: true, glow: 'rgba(0,200,255,1)' }, // Reducido de 18k a 4k
-    galactic_devourer: { hp: 8000, speed: 0.25, money: 3000, color: '#ff00ff', radius: 30, immune: true, glow: 'rgba(255,0,255,0.8)' }, // Reducido de 40k a 8k
-    void_boss: { hp: 12000, speed: 0.35, money: 4000, color: '#311b92', radius: 28, immune: true, glow: 'rgba(100,0,255,1)' }, // Reducido de 60k a 12k
-    chaos_lord: { hp: 50000, speed: 0.3, money: 15000, color: '#000000', radius: 35, immune: true, glow: 'rgba(255,0,0,1)', white: true }, // Reducido de 500k a 50k
-    neon_god: { hp: 100000, speed: 0.25, money: 50000, color: '#ffd700', radius: 32, immune: true, glow: 'rgba(255,215,0,1)' }, // Reducido de 2M a 100k
-    entity_zero: { hp: 500000, speed: 0.2, money: 1000000, color: '#fff', radius: 40, immune: true, glow: 'rgba(255,255,255,1)' }}; // Reducido de 10M a 500k
+    basic: { hp: 12, speed: 1.5, money: 4, color: '#e0e0e0', radius: 10, glow: 'rgba(255,255,255,0.5)' }, // Money 6 -> 4
+    fast: { hp: 10, speed: 3.2, money: 6, color: '#ffea00', radius: 8, glow: 'rgba(255,234,0,0.5)' }, // Money 8 -> 6
+    tank: { hp: 80, speed: 0.8, money: 20, color: '#ff3d00', radius: 14, glow: 'rgba(255,61,0,0.5)' }, // HP 60 -> 80, Money 25 -> 20
+    special: { hp: 25, speed: 1.6, money: 12, color: '#d500f9', radius: 11, immune: true, glow: 'rgba(213,0,249,0.5)' }, // Money 15 -> 12
+    white_guard: { hp: 3000, speed: 0.6, money: 100, color: '#ffffff', radius: 16, immune: false, glow: 'rgba(255,255,255,0.9)', white: true },
+    boss: { hp: 600, speed: 0.5, money: 150, color: '#b71c1c', radius: 22, immune: false, glow: 'rgba(183,28,28,0.8)' }, // HP 400 -> 600, Money 200 -> 150
+    white_boss: { hp: 3500, speed: 0.4, money: 1000, color: '#ffffff', radius: 25, immune: true, glow: 'rgba(255,255,255,1)', white: true }, 
+    mecha_hydra: { hp: 5000, speed: 0.35, money: 2000, color: '#00ff00', radius: 28, immune: false, glow: 'rgba(0,255,0,0.8)' }, 
+    cyber_angel: { hp: 4000, speed: 1.2, money: 2500, color: '#00ccff', radius: 20, immune: true, glow: 'rgba(0,200,255,1)' }, 
+    galactic_devourer: { hp: 8000, speed: 0.25, money: 3000, color: '#ff00ff', radius: 30, immune: true, glow: 'rgba(255,0,255,0.8)' }, 
+    void_boss: { hp: 12000, speed: 0.35, money: 4000, color: '#311b92', radius: 28, immune: true, glow: 'rgba(100,0,255,1)' }, 
+    chaos_lord: { hp: 50000, speed: 0.3, money: 15000, color: '#000000', radius: 35, immune: true, glow: 'rgba(255,0,0,1)', white: true }, 
+    neon_god: { hp: 100000, speed: 0.25, money: 50000, color: '#ffd700', radius: 32, immune: true, glow: 'rgba(255,215,0,1)' }, 
+    entity_zero: { hp: 500000, speed: 0.2, money: 1000000, color: '#fff', radius: 40, immune: true, glow: 'rgba(255,255,255,1)' }};
 
 const AudioEngine = {
     ctx: new (window.AudioContext || window.webkitAudioContext)(),
@@ -505,18 +520,10 @@ class Enemy extends Entity {
         this.idx = 0;
         const data = ENEMY_DATA[type];
         
-        // --- DIFFICULTY SCALING (RELAJADO) ---
-        // Factor de ola inicial reducido de 0.25 a 0.15 para una curva más suave.
-        let waveMult = 1 + (Game.wave * 0.15); 
-        
-        // EXPONENTIAL CURVE AFTER WAVE 50
-        if (Game.wave > 50) {
-            waveMult *= Math.pow(1.06, Game.wave - 50);
-        }
-        // HYPER EXPONENTIAL CURVE AFTER WAVE 80
-        if (Game.wave > 80) {
-            waveMult *= Math.pow(1.1, Game.wave - 80);
-        }
+        // --- DIFFICULTY SCALING (FULL EXPONENTIAL) ---
+        // Curva completamente exponencial desde el inicio.
+        // Base 1.12^x asegura que se vuelve brutalmente difícil rápidamente.
+        let waveMult = 1.5 * Math.pow(1.12, Game.wave - 1); 
         
         this.maxHp = Math.floor(data.hp * waveMult);
         
