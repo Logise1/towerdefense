@@ -436,175 +436,201 @@ const BASIC_TOWERS = {
   // ===== EARLY GAME =====
   cannon: {
     name: "Blaster", symbol: "💥", type: "cannon",
+    color: PALETTE.cannon,
     cost: 60, dmg: 12, range: 3*TILE, rate: 45,
+    radius: 10,
     desc: "Básico sólido.",
     upgrades: [
-      { cost: 40, apply: t => t.dmg += 6 },
-      { cost: 60, apply: t => t.dmg += 12 },
-      { cost: 80, apply: t => { t.dmg += 10; t.range += TILE } },
-      { cost: 250, apply: t => { t.isUlt = true; t.splash = 2*TILE } }
+      { cost: 40, text:"+6 Dmg", apply: t => t.dmg += 6 },
+      { cost: 60, text:"+12 Dmg", apply: t => t.dmg += 12 },
+      { cost: 80, text:"+Range", apply: t => { t.dmg += 10; t.range += TILE } },
+      { cost: 250, text:"ULT: Explosivo", apply: t => { t.isUlt = true; t.splash = 2*TILE } }
     ]
   },
 
   bow: {
     name: "Rápido", symbol: "🏹", type: "bow",
+    color: PALETTE.bow,
     cost: 110, dmg: 7, range: 4*TILE, rate: 22,
     critChance: 0.15, critMult: 2,
+    radius: 9,
     desc: "Alta cadencia.",
     upgrades: [
-      { cost: 80, apply: t => t.rate *= 0.8 },
-      { cost: 100, apply: t => t.dmg += 3 },
-      { cost: 150, apply: t => t.pierce = 2 },
-      { cost: 400, apply: t => { t.isUlt = true; t.multiShot = 3 } }
+      { cost: 80, text:"Speed", apply: t => t.rate *= 0.8 },
+      { cost: 100, text:"+3 Dmg", apply: t => t.dmg += 3 },
+      { cost: 150, text:"Pierce", apply: t => t.pierce = 2 },
+      { cost: 400, text:"ULT: Triple", apply: t => { t.isUlt = true; t.multiShot = 3 } }
     ]
   },
 
   ice: {
     name: "Cryo", symbol: "❄️", type: "ice",
+    color: PALETTE.ice,
     cost: 100, dmg: 6, range: 3*TILE, rate: 45,
     slow: 0.5, slowDur: 140,
+    radius: 10,
     desc: "Control real.",
     upgrades: [
-      { cost: 100, apply: t => t.slowDur += 120 },
-      { cost: 150, apply: t => t.range += TILE },
-      { cost: 180, apply: t => t.slow = 0.35 },
-      { cost: 350, apply: t => { t.isUlt = true; t.freeze = true } }
+      { cost: 100, text:"+Dur", apply: t => t.slowDur += 120 },
+      { cost: 150, text:"+Range", apply: t => t.range += TILE },
+      { cost: 180, text:"Hard Slow", apply: t => t.slow = 0.35 },
+      { cost: 350, text:"ULT: Freeze", apply: t => { t.isUlt = true; t.freeze = true } }
     ]
   },
 
   // ===== MID GAME =====
   mortar: {
     name: "Artillería", symbol: "💣", type: "mortar",
+    color: PALETTE.mortar,
     cost: 190, dmg: 30, range: 5*TILE, rate: 85,
     splash: 2.2*TILE,
+    radius: 12,
     desc: "Área.",
     upgrades: [
-      { cost: 120, apply: t => t.splash += TILE },
-      { cost: 180, apply: t => t.dmg += 20 },
-      { cost: 200, apply: t => t.rate *= 0.8 },
-      { cost: 650, apply: t => { t.isUlt = true; t.dmg += 180; t.splash += 2*TILE } }
+      { cost: 120, text:"+Area", apply: t => t.splash += TILE },
+      { cost: 180, text:"+20 Dmg", apply: t => t.dmg += 20 },
+      { cost: 200, text:"Fast", apply: t => t.rate *= 0.8 },
+      { cost: 650, text:"ULT: Barrage", apply: t => { t.isUlt = true; t.dmg += 180; t.splash += 2*TILE } }
     ]
   },
 
   electro: {
     name: "Tesla", symbol: "⚡", type: "electro",
+    color: PALETTE.electro,
     cost: 200, dmg: 12, range: 3.5*TILE, rate: 40,
     chain: 3,
+    radius: 10,
     desc: "Control en masa.",
     upgrades: [
-      { cost: 150, apply: t => t.chain++ },
-      { cost: 200, apply: t => t.dmg += 10 },
-      { cost: 300, apply: t => t.chain += 2 },
-      { cost: 700, apply: t => { t.isUlt = true; t.chain = 8; t.dmg *= 1.3 } }
+      { cost: 150, text:"+Jump", apply: t => t.chain++ },
+      { cost: 200, text:"+10 Dmg", apply: t => t.dmg += 10 },
+      { cost: 300, text:"+2 Jumps", apply: t => t.chain += 2 },
+      { cost: 700, text:"ULT: Storm", apply: t => { t.isUlt = true; t.chain = 8; t.dmg *= 1.3 } }
     ]
   },
 
   laser: {
     name: "Láser", symbol: "🧿", type: "laser",
+    color: PALETTE.laser,
     cost: 160, dmg: 4, range: 4*TILE, rate: 4,
+    radius: 9,
     desc: "DPS constante.",
     upgrades: [
-      { cost: 200, apply: t => t.dmg += 2 },
-      { cost: 250, apply: t => t.range += TILE },
-      { cost: 300, apply: t => t.burn = true },
-      { cost: 650, apply: t => { t.isUlt = true; t.ignoreArmor = true; t.rate = 3 } }
+      { cost: 200, text:"+2 Dmg", apply: t => t.dmg += 2 },
+      { cost: 250, text:"+Range", apply: t => t.range += TILE },
+      { cost: 300, text:"Burn", apply: t => t.burn = true },
+      { cost: 650, text:"ULT: Disintegrate", apply: t => { t.isUlt = true; t.ignoreArmor = true; t.rate = 3 } }
     ]
   },
 
   sniper: {
     name: "Railgun", symbol: "🔭", type: "sniper",
+    color: PALETTE.sniper,
     cost: 480, dmg: 260, range: 9*TILE, rate: 150,
+    radius: 8,
     desc: "Anti-boss.",
     upgrades: [
-      { cost: 250, apply: t => t.dmg += 120 },
-      { cost: 400, apply: t => t.pierce = 3 },
-      { cost: 500, apply: t => t.rate *= 0.75 },
-      { cost: 1500, apply: t => { t.isUlt = true; t.dmg += 600; t.pierce = 8 } }
+      { cost: 250, text:"+120 Dmg", apply: t => t.dmg += 120 },
+      { cost: 400, text:"Pierce", apply: t => t.pierce = 3 },
+      { cost: 500, text:"Fast", apply: t => t.rate *= 0.75 },
+      { cost: 1500, text:"ULT: Execution", apply: t => { t.isUlt = true; t.dmg += 600; t.pierce = 8 } }
     ]
   },
 
   // ===== DIAMANTE =====
   sonic: {
     name: "Sonic", symbol: "🔊", type: "sonic",
+    color: PALETTE.sonic,
     cost: 520, dmg: 25, range: 3*TILE, rate: 28,
     splash: 2.8*TILE, slow: 0.35, slowDur: 45,
+    radius: 12,
     desc: "Control total.",
     upgrades: [
-      { cost: 400, apply: t => t.range += TILE },
-      { cost: 500, apply: t => t.slowDur += 25 },
-      { cost: 800, apply: t => t.splash += TILE },
-      { cost: 2000, apply: t => { t.isUlt = true; t.dmg = 110; t.slow = 0.08 } }
+      { cost: 400, text:"+Range", apply: t => t.range += TILE },
+      { cost: 500, text:"+Stun", apply: t => t.slowDur += 25 },
+      { cost: 800, text:"Shockwave", apply: t => t.splash += TILE },
+      { cost: 2000, text:"ULT: Bass Drop", apply: t => { t.isUlt = true; t.dmg = 110; t.slow = 0.08 } }
     ]
   },
 
   plasma: {
     name: "Inferno", symbol: "☀️", type: "plasma",
+    color: PALETTE.plasma,
     cost: 320, dmg: 9, range: 3.5*TILE, rate: 5,
     splash: 1.8*TILE,
+    radius: 11,
     desc: "AoE DPS.",
     upgrades: [
-      { cost: 900, apply: t => t.splash *= 1.25 },
-      { cost: 1000, apply: t => t.dmg += 4 },
-      { cost: 1200, apply: t => t.burn = true },
-      { cost: 3000, apply: t => { t.isUlt = true; t.dmg *= 2.2; t.splash *= 1.5 } }
+      { cost: 900, text:"+Area", apply: t => t.splash *= 1.25 },
+      { cost: 1000, text:"+4 Dmg", apply: t => t.dmg += 4 },
+      { cost: 1200, text:"Napalm", apply: t => t.burn = true },
+      { cost: 3000, text:"ULT: Supernova", apply: t => { t.isUlt = true; t.dmg *= 2.2; t.splash *= 1.5 } }
     ]
   },
 
   gamma: {
     name: "Gamma", symbol: "☢️", type: "gamma",
+    color: PALETTE.gamma,
     cost: 1500, dmg: 90, range: 5*TILE, rate: 10,
+    radius: 12,
     desc: "Anti-tank.",
     upgrades: [
-      { cost: 2000, apply: t => t.burn = true },
-      { cost: 3000, apply: t => t.dmg += 100 },
-      { cost: 4000, apply: t => t.rate = 8 },
-      { cost: 12000, apply: t => { t.isUlt = true; t.dmg = 420; t.rate = 6 } }
+      { cost: 2000, text:"Irradiate", apply: t => t.burn = true },
+      { cost: 3000, text:"+100 Dmg", apply: t => t.dmg += 100 },
+      { cost: 4000, text:"Fast", apply: t => t.rate = 8 },
+      { cost: 12000, text:"ULT: Meltdown", apply: t => { t.isUlt = true; t.dmg = 420; t.rate = 6 } }
     ]
   },
 
   vortex: {
     name: "Vortex", symbol: "🌀", type: "vortex",
+    color: PALETTE.vortex,
     cost: 2400, dmg: 260, range: 4*TILE, rate: 40,
     splash: 3.5*TILE, slow: 0.25,
+    radius: 13,
     desc: "Control + daño.",
     upgrades: [
-      { cost: 3000, apply: t => t.splash = 4.5*TILE },
-      { cost: 4000, apply: t => t.dmg += 240 },
-      { cost: 5000, apply: t => t.slow = 0.35 },
-      { cost: 20000, apply: t => { t.isUlt = true; t.dmg = 3000; t.splash = 5*TILE } }
+      { cost: 3000, text:"Event Horizon", apply: t => t.splash = 4.5*TILE },
+      { cost: 4000, text:"+240 Dmg", apply: t => t.dmg += 240 },
+      { cost: 5000, text:"Pull", apply: t => t.slow = 0.35 },
+      { cost: 20000, text:"ULT: Singularity", apply: t => { t.isUlt = true; t.dmg = 3000; t.splash = 5*TILE } }
     ]
   },
 
   // ===== LATE GAME =====
   titan: {
     name: "Titan", symbol: "👑", type: "titan",
+    color: PALETTE.titan,
     cost: 3200, dmg: 420, range: 6*TILE, rate: 130,
     splash: 2.3*TILE, critChance: 0.2, critMult: 2.2,
+    radius: 14,
     desc: "Mini-boss.",
     upgrades: [
-      { cost: 2500, apply: t => t.dmg += 300 },
-      { cost: 4000, apply: t => t.range = 15*TILE },
-      { cost: 6000, apply: t => t.rate *= 0.8 },
-      { cost: 20000, apply: t => { t.isUlt = true; t.dmg = 5000; t.splash = 5*TILE } }
+      { cost: 2500, text:"+300 Dmg", apply: t => t.dmg += 300 },
+      { cost: 4000, text:"Semi-Global", apply: t => t.range = 15*TILE },
+      { cost: 6000, text:"Fast", apply: t => t.rate *= 0.8 },
+      { cost: 20000, text:"ULT: Doomsday", apply: t => { t.isUlt = true; t.dmg = 5000; t.splash = 5*TILE } }
     ]
   },
 
   omega: {
     name: "Omega", symbol: "♾️", type: "omega",
+    color: PALETTE.omega,
     cost: 30000, dmg: 3500, range: 10*TILE, rate: 100,
     splash: 3*TILE, ignoreArmor: true,
+    radius: 18,
     desc: "Dios.",
     upgrades: [
-      { cost: 25000, apply: t => t.dmg += 3000 },
-      { cost: 40000, apply: t => t.range = 30*TILE },
-      { cost: 80000, apply: t => { t.dmg *= 3; t.splash = 5*TILE } },
-      { cost: 150000, apply: t => { t.isUlt = true; t.dmg = 50000; t.rate = 15 } }
+      { cost: 25000, text:"Reality Break", apply: t => t.dmg += 3000 },
+      { cost: 40000, text:"Omnipresent", apply: t => t.range = 30*TILE },
+      { cost: 80000, text:"Erasure", apply: t => { t.dmg *= 3; t.splash = 5*TILE } },
+      { cost: 150000, text:"ULT: The End", apply: t => { t.isUlt = true; t.dmg = 50000; t.rate = 15 } }
     ]
   }
 
 };
 
-
+    
 let CURRENT_ARSENAL = BASIC_TOWERS;
 
 // ECONOMY NERF: Dinero por muerte reducido
