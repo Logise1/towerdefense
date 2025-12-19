@@ -635,26 +635,155 @@ let CURRENT_ARSENAL = BASIC_TOWERS;
 
 // ECONOMY NERF: Dinero por muerte reducido
 const ENEMY_DATA = {
-  basic: { hp: 14, speed: 1.5, money: 5 },
-  fast: { hp: 12, speed: 3.2, money: 7 },
-  tank: { hp: 90, speed: 0.8, money: 25 },
-  special: { hp: 30, speed: 1.6, money: 14, immune: true },
 
-  boss: { hp: 450, speed: 0.55, money: 300 },
+  // ===== EARLY =====
+  basic: {
+    hp: 14,
+    speed: 1.5,
+    money: 5,
+    color: "#e0e0e0",
+    radius: 10,
+    immune: false,
+    glow: "rgba(255,255,255,0.4)"
+  },
 
-  white_guard: { hp: 2500, speed: 0.6, money: 150 },
-  white_boss: { hp: 3000, speed: 0.45, money: 1200 },
+  fast: {
+    hp: 12,
+    speed: 3.2,
+    money: 7,
+    color: "#ffea00",
+    radius: 8,
+    immune: false,
+    glow: "rgba(255,234,0,0.5)"
+  },
 
-  mecha_hydra: { hp: 4500, speed: 0.4, money: 2500 },
-  cyber_angel: { hp: 4200, speed: 1.1, money: 3000, immune: true },
+  tank: {
+    hp: 90,
+    speed: 0.8,
+    money: 25,
+    color: "#ff3d00",
+    radius: 14,
+    immune: false,
+    glow: "rgba(255,61,0,0.6)"
+  },
 
-  galactic_devourer: { hp: 9000, speed: 0.3, money: 4000, immune: true },
-  void_boss: { hp: 14000, speed: 0.35, money: 6000, immune: true },
+  special: {
+    hp: 30,
+    speed: 1.6,
+    money: 14,
+    color: "#d500f9",
+    radius: 11,
+    immune: true,
+    glow: "rgba(213,0,249,0.6)"
+  },
 
-  chaos_lord: { hp: 40000, speed: 0.3, money: 20000 },
-  neon_god: { hp: 80000, speed: 0.25, money: 60000 },
+  // ===== MID BOSSES =====
+  boss: {
+    hp: 450,
+    speed: 0.55,
+    money: 300,
+    color: "#b71c1c",
+    radius: 22,
+    immune: false,
+    glow: "rgba(183,28,28,0.8)"
+  },
 
-  entity_zero: { hp: 350000, speed: 0.2, money: 1000000 }
+  white_guard: {
+    hp: 2500,
+    speed: 0.6,
+    money: 150,
+    color: "#ffffff",
+    radius: 16,
+    immune: false,
+    white: true,
+    glow: "rgba(255,255,255,0.9)"
+  },
+
+  white_boss: {
+    hp: 3000,
+    speed: 0.45,
+    money: 1200,
+    color: "#ffffff",
+    radius: 25,
+    immune: true,
+    white: true,
+    glow: "rgba(255,255,255,1)"
+  },
+
+  // ===== ADVANCED BOSSES =====
+  mecha_hydra: {
+    hp: 4500,
+    speed: 0.4,
+    money: 2500,
+    color: "#00ff00",
+    radius: 28,
+    immune: false,
+    glow: "rgba(0,255,0,0.8)"
+  },
+
+  cyber_angel: {
+    hp: 4200,
+    speed: 1.1,
+    money: 3000,
+    color: "#00ccff",
+    radius: 20,
+    immune: true,
+    glow: "rgba(0,200,255,1)"
+  },
+
+  galactic_devourer: {
+    hp: 9000,
+    speed: 0.3,
+    money: 4000,
+    color: "#ff00ff",
+    radius: 30,
+    immune: true,
+    glow: "rgba(255,0,255,0.85)"
+  },
+
+  void_boss: {
+    hp: 14000,
+    speed: 0.35,
+    money: 6000,
+    color: "#311b92",
+    radius: 28,
+    immune: true,
+    glow: "rgba(100,0,255,1)"
+  },
+
+  // ===== ENDGAME BOSSES =====
+  chaos_lord: {
+    hp: 40000,
+    speed: 0.3,
+    money: 20000,
+    color: "#000000",
+    radius: 35,
+    immune: true,
+    white: true,
+    glow: "rgba(255,0,0,1)"
+  },
+
+  neon_god: {
+    hp: 80000,
+    speed: 0.25,
+    money: 60000,
+    color: "#ffd700",
+    radius: 32,
+    immune: true,
+    glow: "rgba(255,215,0,1)"
+  },
+
+  entity_zero: {
+    hp: 350000,
+    speed: 0.2,
+    money: 1000000,
+    color: "#ffffff",
+    radius: 40,
+    immune: true,
+    white: true,
+    glow: "rgba(255,255,255,1)"
+  }
+
 };
 
 
