@@ -3,8 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Defense - Editor Completo</title>
+    <title>Neon Defense - Editor Cloud</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "", // La clave se inyecta en runtime, dejar vacío
+            authDomain: "towerdefense-dfbfb.firebaseapp.com",
+            projectId: "towerdefense-dfbfb",
+            storageBucket: "towerdefense-dfbfb.firebasestorage.app",
+            messagingSenderId: "780250375670",
+            appId: "1:780250375670:web:ccded917e7b2316e5013d7",
+            measurementId: "G-4GW89G9D55"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        // Usamos una colección pública para que cualquiera pueda jugar el mapa por ID, 
+        // pero guardamos el UID del creador para filtrar "Mis Creaciones".
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        window.AuthManager = {
+            user: null,
+            login: async (emailRaw, password) => {
+                const email = emailRaw.includes('@') ? emailRaw : `${emailRaw}@email.com`;
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    closeModal('auth-modal');
+                } catch (error) { showAuthError("Error: " + error.message); }
+            },
+            register: async (emailRaw, password) => {
+                const email = emailRaw.includes('@') ? emailRaw : `${emailRaw}@email.com`;
+                try {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    closeModal('auth-modal');
+                } catch (error) { showAuthError("Error: " + error.message); }
+            },
+            logout: async () => { await signOut(auth); }
+        };
+
+        window.CloudManager = {
+            save: async (data, name) => {
+                if (!auth.currentUser) {
+                    openModal('auth-modal');
+                    return null;
+                }
+                const btn = document.getElementById('save-btn');
+                const oldText = btn.innerText;
+                btn.innerText = "GUARDANDO...";
+                btn.disabled = true;
+
+                try {
+                    const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'custom_modes'), {
+                        name: name,
+                        author: auth.currentUser.email.split('@')[0],
+                        authorUid: auth.currentUser.uid,
+                        data: JSON.stringify(data),
+                        timestamp: Date.now()
+                    });
+                    
+                    btn.innerText = "GUARDADO ✔";
+                    setTimeout(() => { btn.innerText = oldText; btn.disabled = false; }, 2000);
+                    
+                    // Abrir Custom con ID
+                    const url = `custom.html?id=${docRef.id}`;
+                    window.open(url, '_blank');
+                    
+                    // Refrescar lista
+                    window.CloudManager.listMyCustoms();
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Error guardando: " + e.message);
+                    btn.innerText = oldText; btn.disabled = false;
+                }
+            },
+            listMyCustoms: async () => {
+                if (!auth.currentUser) return;
+                const listContainer = document.getElementById('my-customs-list');
+                listContainer.innerHTML = '<div style="text-align:center; color:#666">Cargando...</div>';
+                
+                try {
+                    // Fetch simple y filtro en memoria como pide la regla 2
+                    const snapshot = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', 'custom_modes'));
+                    const myCustoms = [];
+                    snapshot.forEach(doc => {
+                        const d = doc.data();
+                        if(d.authorUid === auth.currentUser.uid) {
+                            myCustoms.push({id: doc.id, ...d});
+                        }
+                    });
+
+                    // Ordenar por fecha reciente
+                    myCustoms.sort((a,b) => b.timestamp - a.timestamp);
+
+                    listContainer.innerHTML = '';
+                    if (myCustoms.length === 0) {
+                        listContainer.innerHTML = '<div style="text-align:center; color:#666">No tienes creaciones guardadas.</div>';
+                        return;
+                    }
+
+                    myCustoms.forEach(c => {
+                        const el = document.createElement('div');
+                        el.className = 'list-item';
+                        el.innerHTML = `
+                            <div style="flex:1">
+                                <div style="font-weight:bold; color:var(--accent)">${c.name}</div>
+                                <div style="font-size:0.7em; color:#666">${new Date(c.timestamp).toLocaleDateString()}</div>
+                            </div>
+                            <button class="btn" style="padding:4px 8px; font-size:0.7em; margin-left:5px" onclick="window.loadFromCloud('${c.id}', '${escape(c.data)}')">EDITAR</button>
+                            <button class="btn btn-danger" style="padding:4px 8px; font-size:0.7em; margin-left:5px" onclick="window.open('custom.html?id=${c.id}', '_blank')">JUGAR</button>
+                        `;
+                        listContainer.appendChild(el);
+                    });
+                } catch (e) {
+                    console.error(e);
+                    listContainer.innerHTML = '<div style="text-align:center; color:red">Error al cargar lista.</div>';
+                }
+            }
+        };
+
+        // Auth Init
+        // Use initial token if available, otherwise anonymous/listener will handle it
+        const initAuth = async () => {
+             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                try { await signInWithCustomToken(auth, __initial_auth_token); } catch(e) { console.error(e); }
+             } else {
+                 // Esperamos a que el usuario se loguee manualmente o ya tenga sesión
+             }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            const display = document.getElementById('auth-status');
+            const loginBtn = document.getElementById('btn-login-sidebar');
+            const customsTab = document.getElementById('tab-customs');
+            
+            if (user) {
+                const name = user.email ? user.email.split('@')[0] : 'Anon';
+                display.innerHTML = `HOLA, <span style="color:var(--accent)">${name.toUpperCase()}</span> <span style="cursor:pointer; font-size:0.8em; color:#666" onclick="window.AuthManager.logout()">(SALIR)</span>`;
+                loginBtn.style.display = 'none';
+                customsTab.style.display = 'block';
+                document.getElementById('creator-name').value = name;
+                window.CloudManager.listMyCustoms();
+            } else {
+                display.innerText = "NO LOGUEADO";
+                loginBtn.style.display = 'block';
+                customsTab.style.display = 'none';
+                document.getElementById('my-customs-list').innerHTML = '';
+            }
+        });
+
+    </script>
     <style>
         :root {
             --bg: #0a0a12;
@@ -25,9 +179,8 @@
             overflow: hidden;
         }
         
-        /* Sidebar List */
         .sidebar {
-            width: 320px;
+            width: 340px;
             background: var(--panel);
             border-right: 1px solid var(--border);
             display: flex;
@@ -38,12 +191,17 @@
         }
         .header {
             font-size: 1.5rem; color: var(--accent); text-transform: uppercase;
-            text-align: center; margin-bottom: 20px; border-bottom: 1px solid var(--border);
+            text-align: center; margin-bottom: 10px; border-bottom: 1px solid var(--border);
             padding-bottom: 10px; font-weight: 800;
         }
+        .auth-bar {
+            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;
+        }
+        
         .tab-btn {
             background: #222; color: #888; border: 1px solid #444; padding: 10px;
-            cursor: pointer; flex: 1; font-weight: bold; font-family: inherit; transition: 0.2s;
+            cursor: pointer; flex: 1; font-weight: bold; font-family: inherit; transition: 0.2s; font-size: 0.8rem;
         }
         .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
         .tabs { display: flex; margin-bottom: 10px; gap: 2px; }
@@ -57,7 +215,6 @@
         .list-item:hover { border-color: var(--accent); background: rgba(255,255,255,0.1); }
         .list-item.active { background: var(--accent); color: #000; font-weight: bold; box-shadow: 0 0 10px rgba(0,255,204,0.3); }
         
-        /* Main Editor Area */
         .editor-area {
             flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
             background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
@@ -82,9 +239,10 @@
         .btn {
             padding: 10px 20px; background: var(--accent); color: #000; border: none;
             font-weight: bold; cursor: pointer; font-family: inherit; text-transform: uppercase;
-            font-size: 0.9rem; border-radius: 4px; transition: 0.2s;
+            font-size: 0.9rem; border-radius: 4px; transition: 0.2s; text-align: center;
         }
-        .btn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-danger { background: var(--danger); color: white; }
         
         .play-btn {
@@ -98,17 +256,16 @@
 
         .toolbar { display: flex; gap: 10px; margin-bottom: 10px; }
         
-        .import-box {
-            margin-top: auto; padding-top: 20px; border-top: 1px solid #333;
-        }
-        .import-box input { margin-bottom: 5px; font-size: 0.8rem; }
-        .hint { font-size: 0.75rem; color: #666; margin-top: 3px; }
+        /* Modal */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: #111; border: 1px solid var(--accent); padding: 30px; border-radius: 8px; width: 400px; display: flex; flex-direction: column; gap: 15px; }
+        .modal-header { font-size: 1.5rem; color: white; text-align: center; margin-bottom: 10px; }
+        .close-modal { float: right; cursor: pointer; color: #666; }
+        #auth-error-msg { color: var(--danger); text-align: center; font-size: 0.9rem; }
 
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
 <body>
@@ -116,6 +273,11 @@
 <div class="sidebar">
     <div class="header">NEON EDITOR V2</div>
     
+    <div class="auth-bar">
+        <div id="auth-status">Verificando...</div>
+    </div>
+    <button id="btn-login-sidebar" class="btn" style="width:100%; margin-bottom:20px; background:#444; color:white; border:1px solid #666" onclick="openModal('auth-modal')">INICIAR SESIÓN</button>
+
     <div style="margin-bottom: 20px;">
         <label>Nombre del Creador</label>
         <input type="text" id="creator-name" value="Jugador" placeholder="Tu nombre...">
@@ -124,9 +286,10 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('towers')">TORRES</button>
         <button class="tab-btn" onclick="switchTab('enemies')">ENEMIGOS</button>
+        <button class="tab-btn" id="tab-customs" style="display:none; color: var(--gold); border-color:var(--gold)" onclick="switchTab('my-customs')">MIS CREACIONES</button>
     </div>
     
-    <div class="toolbar">
+    <div id="main-toolbar" class="toolbar">
         <button class="btn" style="flex:1; background:#333; color:#fff; border:1px solid #555" onclick="addNewItem()">+ Crear Nuevo</button>
         <button class="btn btn-danger" style="width: 50px;" onclick="deleteItem()" title="Borrar seleccionado">X</button>
     </div>
@@ -134,12 +297,9 @@
     <div id="item-list" style="flex:1; overflow-y:auto; min-height: 200px;">
         <!-- JS Populated -->
     </div>
-
-    <div class="import-box">
-        <label>IMPORTAR CONFIGURACIÓN</label>
-        <input type="text" id="import-url" placeholder="Pega la URL custom aquí...">
-        <button class="btn" style="width:100%; font-size:0.8rem; background: #2979ff; color: white;" onclick="importFromUrl()">CARGAR DATOS</button>
-        <div class="hint">Copia el enlace de un juego custom y pégalo para editarlo.</div>
+    
+    <div id="my-customs-list" style="flex:1; overflow-y:auto; min-height: 200px; display:none">
+        <!-- JS Populated -->
     </div>
 </div>
 
@@ -150,15 +310,28 @@
     </div>
 </div>
 
-<button class="btn play-btn" onclick="exportAndPlay()">JUGAR CUSTOM ▶</button>
+<button class="btn play-btn" id="save-btn" onclick="saveToCloud()">GUARDAR Y JUGAR ▶</button>
+
+<!-- Auth Modal -->
+<div id="auth-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            ACCESO <span class="close-modal" onclick="closeModal('auth-modal')">×</span>
+        </div>
+        <input type="text" id="auth-user" placeholder="Usuario o Email">
+        <input type="password" id="auth-pass" placeholder="Contraseña">
+        <div id="auth-error-msg"></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" style="flex:1" onclick="submitAuth('login')">ENTRAR</button>
+            <button class="btn" style="flex:1; background:#333; color:#aaa" onclick="submitAuth('register')">REGISTRARSE</button>
+        </div>
+    </div>
+</div>
 
 <script>
 const TILE = 40; 
 
 // --- DATOS COMPLETOS DEL JUEGO (INDEX.HTML) ---
-// NOTA: Los valores por defecto ahora están en UNIDADES HUMANAS (Casillas y Disparos/Seg)
-// Range: 3 = 3 casillas de distancia.
-// Rate: 1.5 = 1.5 disparos por segundo.
 let TOWERS = {
   cannon: {
     name: "Blaster", symbol: "💥", type: "cannon", color: "#ff9100", cost: 60, dmg: 12, range: 3, rate: 1.33, radius: 10,
@@ -174,7 +347,7 @@ let TOWERS = {
     name: "Rápido", symbol: "🏹", type: "bow", color: "#00e676", cost: 110, dmg: 7, range: 4, rate: 2.7, radius: 9,
     critChance: 0.15, critMult: 2, desc: "Alta cadencia.",
     upgrades: [
-      {cost:80, text:"Speed", stat:"rate", val:-4}, // Las mejoras siguen usando frames internos para precisión
+      {cost:80, text:"Speed", stat:"rate", val:-4}, 
       {cost:100, text:"+3 Dmg", stat:"dmg", val:3},
       {cost:150, text:"Pierce", stat:"pierce", val:2},
       {cost:400, text:"ULT: Triple", ult:true, multiShot:3}
@@ -332,13 +505,30 @@ function switchTab(tab) {
     selectedKey = null;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     event.target.classList.add('active');
-    renderList();
-    document.getElementById('editor-content').innerHTML = `
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#555; text-align:center;">
-            <div style="font-size:4rem; margin-bottom:20px;">🛠️</div>
-            <div>Selecciona una Torre o Enemigo<br>de la lista izquierda para comenzar.</div>
-        </div>
-    `;
+    
+    const itemList = document.getElementById('item-list');
+    const myCustoms = document.getElementById('my-customs-list');
+    const mainToolbar = document.getElementById('main-toolbar');
+    const editorContent = document.getElementById('editor-content');
+
+    if (tab === 'my-customs') {
+        itemList.style.display = 'none';
+        mainToolbar.style.display = 'none';
+        myCustoms.style.display = 'block';
+        window.CloudManager.listMyCustoms();
+        editorContent.innerHTML = '<div style="text-align:center;color:#666;margin-top:50px">Gestiona tus niveles guardados</div>';
+    } else {
+        itemList.style.display = 'block';
+        mainToolbar.style.display = 'flex';
+        myCustoms.style.display = 'none';
+        renderList();
+        editorContent.innerHTML = `
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:#555; text-align:center;">
+                <div style="font-size:4rem; margin-bottom:20px;">🛠️</div>
+                <div>Selecciona una Torre o Enemigo<br>de la lista izquierda para comenzar.</div>
+            </div>
+        `;
+    }
 }
 
 function selectItem(key) {
@@ -432,7 +622,6 @@ window.updateJson = function() {
 window.addNewItem = function() {
     const id = prompt("ID único para el nuevo elemento (ej: super_tower):");
     if(!id) return;
-    // Sanitizar ID
     const safeId = id.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
     
     if(currentTab === 'towers') {
@@ -460,65 +649,42 @@ window.deleteItem = function() {
     `;
 };
 
-window.exportAndPlay = function() {
+window.saveToCloud = function() {
     const creator = document.getElementById('creator-name').value;
     const exportData = {
         towers: TOWERS,
         enemies: ENEMIES,
         name: creator
     };
-    
-    const jsonStr = JSON.stringify(exportData);
-    const b64 = btoa(unescape(encodeURIComponent(jsonStr))); 
-    
-    console.log("Tamaño de datos (bytes):", b64.length);
-    
-    // Si es muy grande, advertir pero abrir igual
-    if(b64.length > 30000) {
-        // En un entorno real usaríamos localStorage o Firebase, pero para este ejercicio URL es lo solicitado.
-        console.warn("URL muy larga");
-    }
-
-    const url = `custom.html?config=${b64}`;
-    window.open(url, '_blank');
+    window.CloudManager.save(exportData, `${creator}'s Mode ${new Date().toLocaleTimeString()}`);
 };
 
-window.importFromUrl = function() {
-    const input = document.getElementById('import-url').value;
-    if(!input) return alert("Por favor pega una URL o código de configuración.");
-    
-    let configStr = input;
-    
-    // Intentar extraer el parámetro si es una URL completa
-    if(input.includes('config=')) {
-        try {
-            const urlObj = new URL(input);
-            configStr = urlObj.searchParams.get('config');
-        } catch(e) {
-            // Si falla el parsing de URL, quizás es una cadena parcial, intentamos split manual
-            const parts = input.split('config=');
-            if(parts.length > 1) configStr = parts[1];
-        }
-    }
-    
-    if(!configStr) return alert("No se encontró código de configuración válido.");
-    
+// Carga en el editor para modificar
+window.loadFromCloud = function(id, escapedJson) {
     try {
-        const jsonStr = decodeURIComponent(escape(atob(configStr)));
-        const data = JSON.parse(jsonStr);
-        
+        const data = JSON.parse(unescape(escapedJson));
         if(data.towers) TOWERS = data.towers;
         if(data.enemies) ENEMIES = data.enemies;
         if(data.name) document.getElementById('creator-name').value = data.name;
         
-        alert(`Configuración de "${data.name || 'Desconocido'}" cargada con éxito!`);
-        renderList();
-        if(selectedKey) renderEditor(); // Refrescar si había algo abierto
-        
+        switchTab('towers'); // Volver a la pestaña de edición
+        alert("¡Datos cargados en el editor!");
     } catch(e) {
         console.error(e);
-        alert("Error al importar: El código parece corrupto o inválido.");
+        alert("Error al cargar datos.");
     }
+}
+
+// UI Modal
+window.openModal = (id) => document.getElementById(id).style.display = 'flex';
+window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+window.showAuthError = (msg) => document.getElementById('auth-error-msg').innerText = msg;
+window.submitAuth = (mode) => {
+    const u = document.getElementById('auth-user').value;
+    const p = document.getElementById('auth-pass').value;
+    if(!u || !p) return showAuthError("Rellena todo.");
+    if(mode === 'login') window.AuthManager.login(u,p);
+    else window.AuthManager.register(u,p);
 };
 
 // Start
