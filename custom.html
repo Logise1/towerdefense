@@ -7,10 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuración explícita solicitada
         const firebaseConfig = {
             apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
             authDomain: "towerdefense-dfbfb.firebaseapp.com",
@@ -22,22 +21,21 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        // Aunque no usamos auth anónima, inicializamos auth por si el usuario ya tiene sesión válida de editor.html
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        // ID fijo para evitar dependencias del entorno
         const appId = 'towerdefense-public-v1';
 
-        // Iniciamos directamente la carga de datos sin esperar a auth anónimo
-        // Si la colección es pública en Firestore Rules, funcionará.
-        // Si requiere auth, funcionará solo si el usuario ya se logueó en editor.html (misma sesión de dominio)
-        loadCustomData();
+        // Init simple: login anonimo si no hay user para leer datos
+        const init = async () => {
+            if(!auth.currentUser) await signInAnonymously(auth);
+            loadCustomData();
+        };
+        init();
 
         async function loadCustomData() {
             const params = new URLSearchParams(window.location.search);
             const id = params.get('id');
-            const config = params.get('config'); // Legacy support
+            const config = params.get('config'); 
 
             if(id) {
                 document.getElementById('loading-overlay').style.display = 'flex';
@@ -49,180 +47,96 @@
                         const savedData = docSnap.data();
                         const data = JSON.parse(savedData.data);
                         applyConfig(data);
-                        console.log("Datos cargados de Firebase:", savedData.name);
+                        console.log("Cargado:", savedData.name);
                     } else {
-                        alert("No se encontró el mapa personalizado (ID incorrecta o problemas de permisos).");
+                        alert("Mapa no encontrado.");
                     }
                 } catch(e) {
-                    console.error("Error cargando de Firebase:", e);
-                    alert("Error de conexión al cargar el mapa. Asegúrate de tener permisos.");
+                    console.error(e);
+                    alert("Error de conexión.");
                 } finally {
                     document.getElementById('loading-overlay').style.display = 'none';
                 }
             } else if(config) {
-                // Fallback para URLs antiguas Base64
                 try {
-                    const jsonStr = decodeURIComponent(escape(atob(config)));
-                    const data = JSON.parse(jsonStr);
+                    const data = JSON.parse(decodeURIComponent(escape(atob(config))));
                     applyConfig(data);
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             } else {
                 document.getElementById('custom-badge').style.display = 'none';
             }
         };
-        
-        // Exponer globalmente para que el HTML pueda llamar a init (aunque aquí se auto-ejecuta arriba)
-        window.loadCustomData = loadCustomData;
 
         function applyConfig(data) {
             if(data.towers) {
                 BASIC_TOWERS = data.towers;
-                // CONVERSIÓN DE UNIDADES HUMANAS (EDITOR) A UNIDADES DE MOTOR
+                // Auto-conversión de unidades
                 Object.values(BASIC_TOWERS).forEach(t => {
                     if(t.range && t.range < 100) t.range = t.range * TILE;
                     if(t.rate && t.rate <= 20) t.rate = Math.max(1, Math.round(60 / t.rate));
                 });
             }
-            
             if(data.enemies) ENEMY_DATA = data.enemies;
-            
             if(data.name) {
                 document.getElementById('custom-badge').innerText = "CUSTOM: " + data.name;
                 document.getElementById('custom-author-display').innerText = "CREADO POR: " + data.name;
             }
             
-            // Reconstruir lógica de upgrades
+            // Reconstruir lógica upgrades
             Object.values(BASIC_TOWERS).forEach(t => {
                 if(t.upgrades) {
                     t.upgrades.forEach(u => {
-                        if(u.stat && u.val) {
-                            u.apply = function(tower) { tower[u.stat] += u.val; };
-                        } else if (u.ult) {
-                            u.apply = function(tower) { tower.isUlt = true; if(u.splash) tower.splash = u.splash; };
-                        } else {
-                            u.apply = function(tower) {};
-                        }
+                        if(u.stat && u.val) u.apply = (tower) => tower[u.stat] += u.val;
+                        else if (u.ult) u.apply = (tower) => { tower.isUlt = true; if(u.splash) tower.splash = u.splash; };
+                        else u.apply = () => {};
                     });
                 }
             });
         }
-
     </script>
     <style>
-        :root {
-            --bg-dark: #0a0a12;
-            --panel-bg: rgba(20, 20, 35, 0.95);
-            --accent: #00ffcc;
-            --accent-glow: rgba(0, 255, 204, 0.5);
-            --gold: #ffcc00;
-            --danger: #ff2a6d;
-            --text-main: #e0e6ed;
-            --border-color: #2a2a40;
-        }
-
+        :root { --bg-dark: #0a0a12; --panel-bg: rgba(20, 20, 35, 0.95); --accent: #00ffcc; --gold: #ffcc00; --danger: #ff2a6d; --text-main: #e0e6ed; --border-color: #2a2a40; }
         * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Rajdhani', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            user-select: none;
-            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%);
-        }
-
-        #game-wrapper {
-            display: flex;
-            box-shadow: 0 0 50px rgba(0,0,0,0.9), 0 0 20px rgba(0, 255, 204, 0.1);
-            border: 1px solid var(--border-color);
-            background: #111;
-            width: 1200px;
-            max-width: 100%;
-            height: 720px;
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .custom-badge {
-            position: absolute; top: 0; right: 0; 
-            background: rgba(255, 42, 109, 0.9); color: white;
-            padding: 5px 15px; font-weight: bold; font-size: 1.2rem;
-            z-index: 9999; border-bottom-left-radius: 10px;
-            box-shadow: 0 0 15px var(--danger);
-        }
-
-        .sidebar {
-            width: 300px; background: var(--panel-bg); backdrop-filter: blur(10px);
-            display: flex; flex-direction: column; border-right: 1px solid var(--border-color);
-            border-left: 1px solid var(--border-color); padding: 15px; padding-top: 60px;
-            transition: opacity 0.3s ease; z-index: 10;
-        }
+        body { margin: 0; overflow: hidden; background-color: var(--bg-dark); color: var(--text-main); font-family: 'Rajdhani', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; user-select: none; background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000 100%); }
+        #game-wrapper { display: flex; box-shadow: 0 0 50px rgba(0,0,0,0.9); border: 1px solid var(--border-color); background: #111; width: 1200px; max-width: 100%; height: 720px; position: relative; border-radius: 12px; overflow: hidden; }
+        .custom-badge { position: absolute; top: 0; right: 0; background: rgba(255, 42, 109, 0.9); color: white; padding: 5px 15px; font-weight: bold; font-size: 1.2rem; z-index: 9999; border-bottom-left-radius: 10px; }
+        .sidebar { width: 300px; background: var(--panel-bg); backdrop-filter: blur(10px); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); border-left: 1px solid var(--border-color); padding: 15px; padding-top: 60px; transition: opacity 0.3s ease; z-index: 10; }
         .sidebar.hidden { opacity: 0; pointer-events: none; }
-        #left-panel { border-left: none; }
-        #right-panel { border-right: none; }
-
+        #left-panel { border-left: none; } #right-panel { border-right: none; }
         #canvas-container { position: relative; flex: 1; background: #050505; cursor: crosshair; }
         canvas { display: block; width: 100%; height: 100%; }
-
         h1 { color: var(--accent); text-align: center; font-size: 1.5rem; margin: 0 0 15px 0; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
-
         .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .stat-card { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; text-align: center; }
         .stat-val { font-size: 1.4rem; font-weight: 700; display: block; color: white; }
         .stat-lbl { font-size: 0.8rem; color: #8899ac; text-transform: uppercase; }
-
-        #upgrade-panel {
-            background: rgba(0,0,0,0.8); border: 1px solid var(--accent); padding: 15px;
-            border-radius: 8px; display: none; flex-direction: column; gap: 10px; margin-top: auto;
-        }
-        .btn {
-            background: linear-gradient(180deg, #333, #222); color: #eee; border: 1px solid #555;
-            padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase;
-            font-size: 0.9rem; font-family: 'Rajdhani', sans-serif; width: 100%; margin-top: 5px;
-        }
+        #upgrade-panel { background: rgba(0,0,0,0.8); border: 1px solid var(--accent); padding: 15px; border-radius: 8px; display: none; flex-direction: column; gap: 10px; margin-top: auto; }
+        .btn { background: linear-gradient(180deg, #333, #222); color: #eee; border: 1px solid #555; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.9rem; font-family: 'Rajdhani', sans-serif; width: 100%; margin-top: 5px; }
         .btn:hover { filter: brightness(1.3); }
-        
         .shop-grid { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; padding-right: 5px; }
         .shop-item { display: flex; align-items: center; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; border: 1px solid #333; cursor: pointer; transition: 0.2s; }
         .shop-item:hover { background: rgba(255,255,255,0.1); border-color: var(--accent); }
-        .shop-icon-canvas { width: 40px; height: 40px; margin-right: 12px; background: #111; border: 1px solid #444; border-radius: 4px; }
         .shop-info { flex: 1; display: flex; flex-direction: column; }
         .shop-name { font-size: 1rem; font-weight: bold; color: white; }
         .shop-cost { font-size: 0.85rem; color: var(--gold); }
-
         #global-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 8, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000; }
         #global-overlay.hidden { display: none; }
         .title-big { font-size: 4rem; color: var(--accent); font-weight: 800; margin-bottom: 10px; text-shadow: 0 0 20px var(--accent); }
         .custom-author { color: var(--gold); font-size: 1.5rem; margin-bottom: 30px; letter-spacing: 2px; }
-
         #loading-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:black; z-index:9999; display:none; justify-content:center; align-items:center; color:var(--accent); font-size:2rem; font-weight:bold; }
-
         #drag-ghost { position: fixed; pointer-events: none; z-index: 999; width: 40px; height: 40px; border-radius: 50%; border: 2px dashed white; display: none; transform: translate(-50%, -50%); }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
     </style>
 </head>
 <body>
 <div id="loading-overlay">CARGANDO MAPA...</div>
-
 <div id="game-wrapper">
     <div id="custom-badge" class="custom-badge">CUSTOM</div>
-
-    <!-- PANTALLA DE OVERLAY GLOBAL -->
     <div id="global-overlay">
         <div class="title-big">NEON DEFENSE</div>
         <div class="custom-author" id="custom-author-display">MODO ESTÁNDAR</div>
         <button class="btn" style="width: 200px; background: var(--accent); color: black;" onclick="Game.start()">INICIAR PARTIDA</button>
     </div>
-    
-    <!-- PANELES LATERALES -->
     <div id="left-panel" class="sidebar hidden">
         <h1>ESTADO</h1>
         <div class="stat-grid">
@@ -238,13 +152,9 @@
             <button class="btn" style="background:#b71c1c; color:#ffcdd2; border-color:#e57373" onclick="Game.sellTower()">Vender</button>
         </div>
     </div>
-    
-    <!-- ÁREA DE JUEGO -->
     <div id="canvas-container">
         <canvas id="gameCanvas" width="600" height="720"></canvas>
     </div>
-
-    <!-- PANEL DERECHO -->
     <div id="right-panel" class="sidebar hidden">
         <h1>ARSENAL</h1>
         <div class="shop-grid" id="shop-container"></div>
@@ -255,21 +165,15 @@
         </div>
     </div>
 </div>
-
 <div id="drag-ghost"></div>
 
 <script>
-// --- CORE DATA CONFIG ---
-// Estos valores serán sobrescritos por la URL si existe
 const TILE = 40; const COLS = 15; const ROWS = 18;
-
-// Mapa por defecto
 const ZOMBIE_MAP = {
     grid: [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,1,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]],
     points: [{c:0,r:1}, {c:12,r:1}, {c:12,r:4}, {c:2,r:4}, {c:2,r:7}, {c:12,r:7}, {c:12,r:10}, {c:2,r:10}, {c:2,r:13}, {c:14,r:13}]
 };
 
-// Se definen como LET para poder modificarlos
 let BASIC_TOWERS = {
   cannon: { name: "Blaster", symbol: "💥", type: "cannon", color: "#ff9100", cost: 60, dmg: 12, range: 120, rate: 45, radius: 10, upgrades: [{cost:40,text:"+6 Dmg",apply:t=>t.dmg+=6}] },
   bow: { name: "Rápido", symbol: "🏹", type: "bow", color: "#00e676", cost: 110, dmg: 7, range: 160, rate: 22, upgrades: [] },
@@ -297,34 +201,24 @@ const AudioEngine = {
         const gain = this.ctx.createGain(); 
         osc.connect(gain); gain.connect(this.ctx.destination); 
         const now = this.ctx.currentTime;
-        
         if(type === 'shoot') { 
-            osc.frequency.setValueAtTime(400, now); 
-            osc.frequency.exponentialRampToValueAtTime(100, now+0.1); 
-            gain.gain.setValueAtTime(0.05, now); 
-            gain.gain.exponentialRampToValueAtTime(0.01, now+0.1); 
+            osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now+0.1); 
+            gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now+0.1); 
             osc.start(now); osc.stop(now+0.1); 
-        }
-        else if (type === 'hit') { 
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(100, now); 
-            osc.frequency.linearRampToValueAtTime(0, now+0.05); 
-            gain.gain.setValueAtTime(0.05, now); 
+        } else if (type === 'hit') { 
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); 
+            osc.frequency.linearRampToValueAtTime(0, now+0.05); gain.gain.setValueAtTime(0.05, now); 
             osc.start(now); osc.stop(now+0.05); 
         }
     }
 };
 
 class Entity { constructor(x, y) { this.x = x; this.y = y; this.dead = false; } }
-
 class Enemy extends Entity {
     constructor(type) {
         super(Game.waypoints[0].x, Game.waypoints[0].y);
         this.idx = 0;
-        // Si el tipo no existe en el custom data, usar basic como fallback
         const data = ENEMY_DATA[type] || ENEMY_DATA['basic'];
-        
-        // Dificultad simple exponencial
         let waveMult = 1 + (Game.wave * 0.15);
         this.maxHp = Math.floor(data.hp * waveMult);
         this.hp = this.maxHp;
@@ -347,8 +241,7 @@ class Enemy extends Entity {
         }
     }
     hit(dmg) { 
-        this.hp -= dmg; 
-        AudioEngine.play('hit');
+        this.hp -= dmg; AudioEngine.play('hit');
         if(this.hp <= 0) Game.killEnemy(this);
     }
     draw(ctx) {
@@ -382,7 +275,6 @@ class Tower extends Entity {
     }
     upgrade() {
         const data = BASIC_TOWERS[this.key];
-        // En custom mode, solo permitimos las upgrades que existan
         if(data.upgrades && data.upgrades[this.level-1]) {
             const upg = data.upgrades[this.level-1];
             if(upg.apply) upg.apply(this);
@@ -391,7 +283,6 @@ class Tower extends Entity {
         }
     }
     findTarget() {
-        // Simple closest
         let best = null; let minDist = this.range;
         for(let e of Game.enemies) {
             let d = Math.hypot(e.x - this.x, e.y - this.y);
@@ -409,8 +300,6 @@ class Tower extends Entity {
         ctx.rotate(this.angle);
         ctx.fillStyle = this.color; ctx.fillRect(-10,-10,20,20);
         ctx.fillStyle = 'black'; ctx.fillRect(0, -2, 15, 4);
-        
-        // Stars for level
         for(let i=0; i<this.level; i++) {
             ctx.fillStyle = 'gold'; ctx.beginPath(); ctx.arc(-10 + (i*6), -15, 2, 0, Math.PI*2); ctx.fill();
         }
@@ -421,9 +310,7 @@ class Tower extends Entity {
 class Projectile extends Entity {
     constructor(tower, target) {
         super(tower.x, tower.y);
-        this.tower = tower;
-        this.tx = target.x; this.ty = target.y;
-        this.speed = 10;
+        this.tower = tower; this.tx = target.x; this.ty = target.y; this.speed = 10;
         const ang = Math.atan2(this.ty - this.y, this.tx - this.x);
         this.vx = Math.cos(ang) * this.speed;
         this.vy = Math.sin(ang) * this.speed;
@@ -431,19 +318,13 @@ class Projectile extends Entity {
     update() {
         this.x += this.vx; this.y += this.vy;
         if(this.x < 0 || this.x > 600 || this.y < 0 || this.y > 720) { this.dead = true; return; }
-        
-        // Check collision
         for(let e of Game.enemies) {
             if(Math.hypot(e.x - this.x, e.y - this.y) < e.radius + 5) {
-                this.hit(e);
-                this.dead = true;
-                break;
+                this.hit(e); this.dead = true; break;
             }
         }
-        // Simple AoE check logic if it reached destination for mortars
         if(this.tower.type === 'mortar' && Math.hypot(this.x-this.tx, this.y-this.ty) < 10) {
-            this.dead = true;
-            this.hitArea();
+            this.dead = true; this.hitArea();
         }
     }
     hit(e) {
@@ -479,8 +360,6 @@ const Game = {
         this.waypoints = ZOMBIE_MAP.points.map(p => ({x: p.c*TILE+TILE/2, y: p.r*TILE+TILE/2}));
         this.renderShop();
         this.loop();
-        
-        // Events
         this.canvas.addEventListener('mousedown', e => this.handleClick(e));
         this.canvas.addEventListener('mousemove', e => this.handleMove(e));
         document.addEventListener('mouseup', e => this.handleDragEnd(e));
@@ -489,8 +368,7 @@ const Game = {
     start() {
         document.getElementById('global-overlay').classList.add('hidden');
         document.querySelectorAll('.sidebar').forEach(el => el.classList.remove('hidden'));
-        this.playing = true;
-        this.money = 250; this.lives = 20; this.wave = 0;
+        this.playing = true; this.money = 250; this.lives = 20; this.wave = 0;
         this.enemies = []; this.towers = []; this.projectiles = [];
         this.updateUI();
     },
@@ -507,22 +385,15 @@ const Game = {
         this.towers.forEach(t => t.update());
         this.projectiles.forEach(p => p.update());
         this.particles.forEach(p => p.life -= 0.05);
-        
         this.enemies = this.enemies.filter(e => !e.dead);
         this.projectiles = this.projectiles.filter(p => !p.dead);
         this.particles = this.particles.filter(p => p.life > 0);
-        
-        if(this.lives <= 0) {
-            alert("GAME OVER - Oleadas: " + this.wave);
-            location.reload();
-        }
+        if(this.lives <= 0) { alert("GAME OVER - Oleadas: " + this.wave); location.reload(); }
     },
 
     draw() {
         const ctx = this.ctx;
         ctx.fillStyle = '#0a0a10'; ctx.fillRect(0,0,600,720);
-        
-        // Draw Map
         const grid = ZOMBIE_MAP.grid;
         for(let r=0; r<ROWS; r++) {
             for(let c=0; c<COLS; c++) {
@@ -532,20 +403,16 @@ const Game = {
                 }
             }
         }
-        
-        // Range indicator
         if(this.selectedTower) {
             ctx.beginPath(); ctx.arc(this.selectedTower.x, this.selectedTower.y, this.selectedTower.range, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill();
             ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
         }
-
         this.towers.forEach(t => t.draw(ctx));
         this.enemies.forEach(e => e.draw(ctx));
         this.projectiles.forEach(p => p.draw(ctx));
         this.particles.forEach(p => {
-             ctx.globalAlpha = p.life;
-             ctx.fillStyle = p.color;
+             ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
              ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
              ctx.globalAlpha = 1;
         });
@@ -554,7 +421,6 @@ const Game = {
     nextWave() {
         this.wave++;
         const keys = Object.keys(ENEMY_DATA);
-        // Generación simple para Custom
         const count = 5 + this.wave;
         for(let i=0; i<count; i++) {
             setTimeout(() => {
@@ -570,7 +436,6 @@ const Game = {
     leakEnemy(e) { e.dead = true; this.lives--; this.updateUI(); },
     addJuice(type, x, y, size, color) { this.particles.push({x,y,size:size||5, color:color||'#fff', life:1}); },
     
-    // UI Helpers
     renderShop() {
         const c = document.getElementById('shop-container'); c.innerHTML = '';
         Object.keys(BASIC_TOWERS).forEach(k => {
@@ -584,17 +449,24 @@ const Game = {
     },
     
     startDrag(type) { if(this.money >= BASIC_TOWERS[type].cost) { this.draggingType = type; const g = document.getElementById('drag-ghost'); g.style.display='block'; g.style.borderColor=BASIC_TOWERS[type].color; } },
+    
     handleMove(e) {
         if(this.draggingType) {
-            const rect = this.canvas.getBoundingClientRect();
             const g = document.getElementById('drag-ghost');
             g.style.left = e.clientX + 'px'; g.style.top = e.clientY + 'px';
         }
     },
+    
     handleDragEnd(e) {
         if(!this.draggingType) return;
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+        
+        // CORRECCIÓN CRUCIAL PARA ARRASTRAR
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+
         if(x>0 && x<600 && y>0 && y<720) {
             const c = Math.floor(x/TILE); const r = Math.floor(y/TILE);
             const grid = ZOMBIE_MAP.grid;
@@ -609,9 +481,14 @@ const Game = {
         }
         this.draggingType = null; document.getElementById('drag-ghost').style.display='none';
     },
+    
     handleClick(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        
         const c = Math.floor(x/TILE); const r = Math.floor(y/TILE);
         this.selectedTower = this.towers.find(t => t.c === c && t.r === r);
         if(this.selectedTower) {
@@ -633,7 +510,7 @@ const Game = {
                 this.money -= next.cost;
                 this.selectedTower.upgrade();
                 this.updateUI();
-                this.handleClick({clientX:0, clientY:0}); // Refresh UI hack
+                // Refresh selection UI hack is not strictly needed if we don't move the tower
             }
         }
     },
