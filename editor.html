@@ -156,9 +156,12 @@
 const TILE = 40; 
 
 // --- DATOS COMPLETOS DEL JUEGO (INDEX.HTML) ---
+// NOTA: Los valores por defecto ahora están en UNIDADES HUMANAS (Casillas y Disparos/Seg)
+// Range: 3 = 3 casillas de distancia.
+// Rate: 1.5 = 1.5 disparos por segundo.
 let TOWERS = {
   cannon: {
-    name: "Blaster", symbol: "💥", type: "cannon", color: "#ff9100", cost: 60, dmg: 12, range: 120, rate: 45, radius: 10,
+    name: "Blaster", symbol: "💥", type: "cannon", color: "#ff9100", cost: 60, dmg: 12, range: 3, rate: 1.33, radius: 10,
     desc: "Básico sólido.",
     upgrades: [
       {cost:40, text:"+6 Dmg", stat:"dmg", val:6},
@@ -168,28 +171,28 @@ let TOWERS = {
     ]
   },
   bow: {
-    name: "Rápido", symbol: "🏹", type: "bow", color: "#00e676", cost: 110, dmg: 7, range: 160, rate: 22, radius: 9,
+    name: "Rápido", symbol: "🏹", type: "bow", color: "#00e676", cost: 110, dmg: 7, range: 4, rate: 2.7, radius: 9,
     critChance: 0.15, critMult: 2, desc: "Alta cadencia.",
     upgrades: [
-      {cost:80, text:"Speed", stat:"rate", val:-4}, // Aprox reduction
+      {cost:80, text:"Speed", stat:"rate", val:-4}, // Las mejoras siguen usando frames internos para precisión
       {cost:100, text:"+3 Dmg", stat:"dmg", val:3},
       {cost:150, text:"Pierce", stat:"pierce", val:2},
       {cost:400, text:"ULT: Triple", ult:true, multiShot:3}
     ]
   },
   ice: {
-    name: "Cryo", symbol: "❄️", type: "ice", color: "#00b0ff", cost: 100, dmg: 6, range: 120, rate: 45, radius: 10,
+    name: "Cryo", symbol: "❄️", type: "ice", color: "#00b0ff", cost: 100, dmg: 6, range: 3, rate: 1.33, radius: 10,
     slow: 0.5, slowDur: 140, desc: "Control real.",
     upgrades: [
       {cost:100, text:"+Dur", stat:"slowDur", val:120},
       {cost:150, text:"+Range", stat:"range", val:40},
-      {cost:180, text:"Hard Slow", stat:"slow", val:-0.15}, // More slow (value decreases)
+      {cost:180, text:"Hard Slow", stat:"slow", val:-0.15},
       {cost:350, text:"ULT: Freeze", ult:true, freeze:true}
     ]
   },
   mortar: {
-    name: "Artillería", symbol: "💣", type: "mortar", color: "#f50057", cost: 190, dmg: 30, range: 200, rate: 85, radius: 12,
-    splash: 88, desc: "Área.",
+    name: "Artillería", symbol: "💣", type: "mortar", color: "#f50057", cost: 190, dmg: 30, range: 5, rate: 0.7, radius: 12,
+    splash: 2.2, desc: "Área.",
     upgrades: [
       {cost:120, text:"+Area", stat:"splash", val:40},
       {cost:180, text:"+20 Dmg", stat:"dmg", val:20},
@@ -198,7 +201,7 @@ let TOWERS = {
     ]
   },
   electro: {
-    name: "Tesla", symbol: "⚡", type: "electro", color: "#d500f9", cost: 200, dmg: 12, range: 140, rate: 40, radius: 10,
+    name: "Tesla", symbol: "⚡", type: "electro", color: "#d500f9", cost: 200, dmg: 12, range: 3.5, rate: 1.5, radius: 10,
     chain: 3, desc: "Control en masa.",
     upgrades: [
       {cost:150, text:"+Jump", stat:"chain", val:1},
@@ -208,7 +211,7 @@ let TOWERS = {
     ]
   },
   laser: {
-    name: "Láser", symbol: "🧿", type: "laser", color: "#ff00cc", cost: 160, dmg: 4, range: 160, rate: 4, radius: 9,
+    name: "Láser", symbol: "🧿", type: "laser", color: "#ff00cc", cost: 160, dmg: 4, range: 4, rate: 15, radius: 9,
     desc: "DPS constante.",
     upgrades: [
       {cost:200, text:"+2 Dmg", stat:"dmg", val:2},
@@ -218,7 +221,7 @@ let TOWERS = {
     ]
   },
   sniper: {
-    name: "Railgun", symbol: "🔭", type: "sniper", color: "#76ff03", cost: 480, dmg: 260, range: 360, rate: 150, radius: 8,
+    name: "Railgun", symbol: "🔭", type: "sniper", color: "#76ff03", cost: 480, dmg: 260, range: 9, rate: 0.4, radius: 8,
     desc: "Anti-boss.",
     upgrades: [
       {cost:250, text:"+120 Dmg", stat:"dmg", val:120},
@@ -228,8 +231,8 @@ let TOWERS = {
     ]
   },
   sonic: {
-    name: "Sonic", symbol: "🔊", type: "sonic", color: "#00e5ff", cost: 520, dmg: 25, range: 120, rate: 28, radius: 12,
-    splash: 112, slow: 0.35, slowDur: 45, desc: "Control total.",
+    name: "Sonic", symbol: "🔊", type: "sonic", color: "#00e5ff", cost: 520, dmg: 25, range: 3, rate: 2.1, radius: 12,
+    splash: 2.8, slow: 0.35, slowDur: 45, desc: "Control total.",
     upgrades: [
       {cost:400, text:"+Range", stat:"range", val:40},
       {cost:500, text:"+Stun", stat:"slowDur", val:25},
@@ -238,8 +241,8 @@ let TOWERS = {
     ]
   },
   plasma: {
-    name: "Inferno", symbol: "☀️", type: "plasma", color: "#ff3d00", cost: 320, dmg: 9, range: 140, rate: 5, radius: 11,
-    splash: 72, desc: "AoE DPS.",
+    name: "Inferno", symbol: "☀️", type: "plasma", color: "#ff3d00", cost: 320, dmg: 9, range: 3.5, rate: 12, radius: 11,
+    splash: 1.8, desc: "AoE DPS.",
     upgrades: [
       {cost:900, text:"+Area", stat:"splashMult", val:1.25},
       {cost:1000, text:"+4 Dmg", stat:"dmg", val:4},
@@ -248,18 +251,18 @@ let TOWERS = {
     ]
   },
   gamma: {
-    name: "Gamma", symbol: "☢️", type: "gamma", color: "#00ff00", cost: 1500, dmg: 90, range: 200, rate: 10, radius: 12,
+    name: "Gamma", symbol: "☢️", type: "gamma", color: "#00ff00", cost: 1500, dmg: 90, range: 5, rate: 6, radius: 12,
     desc: "Anti-tank.",
     upgrades: [
       {cost:2000, text:"Irradiate", burn:true},
       {cost:3000, text:"+100 Dmg", stat:"dmg", val:100},
-      {cost:4000, text:"Fast", rate:8}, // Fixed set
+      {cost:4000, text:"Fast", rate:8}, 
       {cost:12000, text:"ULT: Meltdown", ult:true, dmg:420, rate:6}
     ]
   },
   vortex: {
-    name: "Vortex", symbol: "🌀", type: "vortex", color: "#6200ea", cost: 2400, dmg: 260, range: 160, rate: 40, radius: 13,
-    splash: 140, slow: 0.25, desc: "Control + daño.",
+    name: "Vortex", symbol: "🌀", type: "vortex", color: "#6200ea", cost: 2400, dmg: 260, range: 4, rate: 1.5, radius: 13,
+    splash: 3.5, slow: 0.25, desc: "Control + daño.",
     upgrades: [
       {cost:3000, text:"Event Horizon", splash:180},
       {cost:4000, text:"+240 Dmg", stat:"dmg", val:240},
@@ -268,8 +271,8 @@ let TOWERS = {
     ]
   },
   titan: {
-    name: "Titan", symbol: "👑", type: "titan", color: "#ffd700", cost: 3200, dmg: 420, range: 240, rate: 130, radius: 14,
-    splash: 92, critChance: 0.2, critMult: 2.2, desc: "Mini-boss.",
+    name: "Titan", symbol: "👑", type: "titan", color: "#ffd700", cost: 3200, dmg: 420, range: 6, rate: 0.46, radius: 14,
+    splash: 2.3, critChance: 0.2, critMult: 2.2, desc: "Mini-boss.",
     upgrades: [
       {cost:2500, text:"+300 Dmg", stat:"dmg", val:300},
       {cost:4000, text:"Semi-Global", range:600},
@@ -278,8 +281,8 @@ let TOWERS = {
     ]
   },
   omega: {
-    name: "Omega", symbol: "♾️", type: "omega", color: "#ffffff", cost: 30000, dmg: 3500, range: 400, rate: 100, radius: 18,
-    splash: 120, ignoreArmor: true, desc: "Dios.",
+    name: "Omega", symbol: "♾️", type: "omega", color: "#ffffff", cost: 30000, dmg: 3500, range: 10, rate: 0.6, radius: 18,
+    splash: 3, ignoreArmor: true, desc: "Dios.",
     upgrades: [
       {cost:25000, text:"Reality Break", stat:"dmg", val:3000},
       {cost:40000, text:"Omnipresent", range:1200},
@@ -360,8 +363,8 @@ function renderEditor() {
         hint = `
         <div style="font-size:0.8rem; color:#888; margin-bottom:20px; background:rgba(255,255,255,0.05); padding:10px; border-radius:4px;">
             ℹ️ <b>AYUDA RÁPIDA:</b><br>
-            <b>Range (Rango):</b> Usa números pequeños para Casillas (ej: 4) o grandes para Píxeles (ej: 160). 1 Casilla = 40px.<br>
-            <b>Rate (Velocidad):</b> Usa números pequeños para Disparos/Seg (ej: 2) o grandes para Frames de espera (ej: 30). 60 Frames = 1 segundo.
+            <b>Range (Rango):</b> Está en <b>Casillas</b> (3 = 3 tiles de distancia).<br>
+            <b>Rate (Velocidad):</b> Está en <b>Disparos por Segundo</b> (1.5 = 1.5 disparos/s).
         </div>`;
     }
 
@@ -434,7 +437,7 @@ window.addNewItem = function() {
     
     if(currentTab === 'towers') {
         if(TOWERS[safeId]) return alert("Ya existe.");
-        TOWERS[safeId] = { name: "Nueva Torre", type: "cannon", color: "#ffffff", cost: 100, dmg: 10, range: 120, rate: 60, upgrades: [] };
+        TOWERS[safeId] = { name: "Nueva Torre", type: "cannon", color: "#ffffff", cost: 100, dmg: 10, range: 3, rate: 1, upgrades: [] };
     } else {
         if(ENEMIES[safeId]) return alert("Ya existe.");
         ENEMIES[safeId] = { hp: 100, speed: 1, money: 10, color: "#ff0000", radius: 10, immune: false };
