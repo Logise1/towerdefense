@@ -7,8 +7,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Configuración explícita solicitada
         const firebaseConfig = {
@@ -22,22 +22,19 @@
         };
 
         const app = initializeApp(firebaseConfig);
+        // Aunque no usamos auth anónima, inicializamos auth por si el usuario ya tiene sesión válida de editor.html
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        
+        // ID fijo para evitar dependencias del entorno
+        const appId = 'towerdefense-public-v1';
 
-        const initAuth = async () => {
-             // Mantenemos soporte para token inicial si existe en el entorno, sino anónimo
-             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                try { await signInWithCustomToken(auth, __initial_auth_token); } catch(e) { console.error(e); }
-             } else {
-                 await signInAnonymously(auth);
-             }
-             loadCustomData();
-        };
-        initAuth();
+        // Iniciamos directamente la carga de datos sin esperar a auth anónimo
+        // Si la colección es pública en Firestore Rules, funcionará.
+        // Si requiere auth, funcionará solo si el usuario ya se logueó en editor.html (misma sesión de dominio)
+        loadCustomData();
 
-        window.loadCustomData = async function() {
+        async function loadCustomData() {
             const params = new URLSearchParams(window.location.search);
             const id = params.get('id');
             const config = params.get('config'); // Legacy support
@@ -54,11 +51,11 @@
                         applyConfig(data);
                         console.log("Datos cargados de Firebase:", savedData.name);
                     } else {
-                        alert("No se encontró el mapa personalizado (ID incorrecta).");
+                        alert("No se encontró el mapa personalizado (ID incorrecta o problemas de permisos).");
                     }
                 } catch(e) {
                     console.error("Error cargando de Firebase:", e);
-                    alert("Error de conexión al cargar el mapa.");
+                    alert("Error de conexión al cargar el mapa. Asegúrate de tener permisos.");
                 } finally {
                     document.getElementById('loading-overlay').style.display = 'none';
                 }
@@ -73,6 +70,9 @@
                 document.getElementById('custom-badge').style.display = 'none';
             }
         };
+        
+        // Exponer globalmente para que el HTML pueda llamar a init (aunque aquí se auto-ejecuta arriba)
+        window.loadCustomData = loadCustomData;
 
         function applyConfig(data) {
             if(data.towers) {
