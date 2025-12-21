@@ -236,8 +236,25 @@ let ENEMY_DATA = {
             const jsonStr = decodeURIComponent(escape(atob(config)));
             const data = JSON.parse(jsonStr);
             
-            if(data.towers) BASIC_TOWERS = data.towers;
+            if(data.towers) {
+                BASIC_TOWERS = data.towers;
+                // CONVERSIÓN DE UNIDADES HUMANAS (EDITOR) A UNIDADES DE MOTOR
+                Object.values(BASIC_TOWERS).forEach(t => {
+                    // 1. Rango: Si es pequeño (<100), asumimos Tiles y convertimos a px
+                    if(t.range && t.range < 100) {
+                        t.range = t.range * TILE;
+                    }
+                    
+                    // 2. Rate (Cadencia): Si es pequeño (<=20), asumimos Ataques/Seg y convertimos a Frames
+                    // Motor: 60 frames = 1 seg. Si pones Rate 2 (2 ataques/seg) -> 30 frames de espera
+                    if(t.rate && t.rate <= 20) {
+                        t.rate = Math.max(1, Math.round(60 / t.rate));
+                    }
+                });
+            }
+            
             if(data.enemies) ENEMY_DATA = data.enemies;
+            
             if(data.name) {
                 document.getElementById('custom-badge').innerText = "CUSTOM: " + data.name;
                 document.getElementById('custom-author-display').innerText = "CREADO POR: " + data.name;
