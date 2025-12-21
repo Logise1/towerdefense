@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Defense - Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a12;
+            --panel: #141423;
+            --accent: #00ffcc;
+            --text: #e0e6ed;
+            --border: #2a2a40;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Sidebar List */
+        .sidebar {
+            width: 300px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .header {
+            font-size: 1.5rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            font-weight: 800;
+        }
+        .tab-btn {
+            background: #222;
+            color: #888;
+            border: 1px solid #444;
+            padding: 10px;
+            cursor: pointer;
+            flex: 1;
+            font-weight: bold;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: #000;
+        }
+        .tabs { display: flex; margin-bottom: 10px; }
+        
+        .list-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .list-item:hover { border-color: var(--accent); }
+        .list-item.active { background: var(--accent); color: #000; font-weight: bold; }
+        
+        /* Main Editor Area */
+        .editor-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            background: var(--panel);
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .form-title { color: var(--accent); margin-bottom: 10px; font-size: 1.2rem; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px; }
+        label { display: block; color: #888; font-size: 0.9rem; margin-bottom: 5px; }
+        input, textarea, select {
+            width: 100%;
+            background: #0a0a12;
+            border: 1px solid #444;
+            color: white;
+            padding: 8px;
+            font-family: monospace;
+            border-radius: 4px;
+        }
+        input[type="color"] { height: 40px; padding: 2px; }
+        
+        textarea { height: 150px; resize: vertical; }
+
+        .btn {
+            padding: 10px 20px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+            text-transform: uppercase;
+            font-size: 1rem;
+        }
+        .btn:hover { filter: brightness(1.2); }
+        .btn-danger { background: #ff2a6d; color: white; }
+        .btn-success { background: #00e676; color: black; width: 100%; padding: 20px; font-size: 1.5rem; margin-top: auto;}
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="header">NEON EDITOR</div>
+    <div style="margin-bottom: 15px;">
+        <label>Tu Nombre (Creador)</label>
+        <input type="text" id="creator-name" value="Creador Anónimo">
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('towers')">TORRES</button>
+        <button class="tab-btn" onclick="switchTab('enemies')">ENEMIGOS</button>
+    </div>
+    
+    <div class="toolbar">
+        <button class="btn" style="flex:1; font-size:0.8rem" onclick="addNewItem()">+ NUEVO</button>
+        <button class="btn btn-danger" style="width: 40px;" onclick="deleteItem()">🗑</button>
+    </div>
+
+    <div id="item-list">
+        <!-- JS Populated -->
+    </div>
+</div>
+
+<div class="editor-area" id="editor-content">
+    <div style="text-align:center; color:#666; margin-top:100px;">Selecciona un elemento de la izquierda para editarlo.</div>
+</div>
+
+<div style="position:fixed; bottom:20px; right:20px; width: 300px;">
+    <button class="btn btn-success" onclick="exportAndPlay()">JUGAR VERSIÓN CUSTOM</button>
+</div>
+
+<script>
+// --- DEFAULT DATA FROM GAME ---
+const TILE = 40;
+const PALETTE = {
+    cannon: '#ff9100', bow: '#00e676', mortar: '#f50057', ice: '#00b0ff', electro: '#d500f9', laser: '#ff00cc', sniper: '#76ff03', minigun: '#2979ff', plasma: '#ff3d00', 
+    bio: '#76ff03', sonic: '#00e5ff', neutron: '#304ffe', titan: '#ffd700', gamma: '#00ff00', vortex: '#6200ea', omega: '#ffffff'
+};
+
+// Datos iniciales (copiados del juego original para tener base)
+let TOWERS = {
+  cannon: { name: "Blaster", symbol: "💥", type: "cannon", color: "#ff9100", cost: 60, dmg: 12, range: 120, rate: 45, radius: 10, desc: "Básico sólido.", upgrades: [{cost:40,text:"+6 Dmg",stat:"dmg",val:6},{cost:60,text:"+12 Dmg",stat:"dmg",val:12},{cost:80,text:"+Range",stat:"range",val:40},{cost:250,text:"ULT: Explosivo",ult:true,splash:80}] },
+  bow: { name: "Rápido", symbol: "🏹", type: "bow", color: "#00e676", cost: 110, dmg: 7, range: 160, rate: 22, critChance: 0.15, critMult: 2, radius: 9, desc: "Alta cadencia.", upgrades: [] },
+  ice: { name: "Cryo", symbol: "❄️", type: "ice", color: "#00b0ff", cost: 100, dmg: 6, range: 120, rate: 45, slow: 0.5, slowDur: 140, radius: 10, desc: "Control real.", upgrades: [] },
+  mortar: { name: "Artillería", symbol: "💣", type: "mortar", color: "#f50057", cost: 190, dmg: 30, range: 200, rate: 85, splash: 88, radius: 12, desc: "Área.", upgrades: [] },
+  electro: { name: "Tesla", symbol: "⚡", type: "electro", color: "#d500f9", cost: 200, dmg: 12, range: 140, rate: 40, chain: 3, radius: 10, desc: "Control en masa.", upgrades: [] },
+  sniper: { name: "Railgun", symbol: "🔭", type: "sniper", color: "#76ff03", cost: 480, dmg: 260, range: 360, rate: 150, radius: 8, desc: "Anti-boss.", upgrades: [] },
+  titan: { name: "Titan", symbol: "👑", type: "titan", color: "#ffd700", cost: 3200, dmg: 420, range: 240, rate: 130, splash: 92, radius: 14, desc: "Mini-boss.", upgrades: [] },
+  omega: { name: "Omega", symbol: "♾️", type: "omega", color: "#ffffff", cost: 30000, dmg: 3500, range: 400, rate: 100, splash: 120, ignoreArmor: true, radius: 18, desc: "Dios.", upgrades: [] }
+};
+
+let ENEMIES = {
+  basic: { hp: 14, speed: 1.5, money: 5, color: "#e0e0e0", radius: 10, immune: false },
+  fast: { hp: 12, speed: 3.2, money: 7, color: "#ffea00", radius: 8, immune: false },
+  tank: { hp: 90, speed: 0.8, money: 25, color: "#ff3d00", radius: 14, immune: false },
+  boss: { hp: 450, speed: 0.55, money: 300, color: "#b71c1c", radius: 22, immune: false },
+  neon_god: { hp: 80000, speed: 0.25, money: 60000, color: "#ffd700", radius: 32, immune: true }
+};
+
+let currentTab = 'towers';
+let selectedKey = null;
+
+function renderList() {
+    const list = document.getElementById('item-list');
+    list.innerHTML = '';
+    const data = currentTab === 'towers' ? TOWERS : ENEMIES;
+    
+    Object.keys(data).forEach(key => {
+        const item = data[key];
+        const el = document.createElement('div');
+        el.className = `list-item ${selectedKey === key ? 'active' : ''}`;
+        el.innerHTML = `<span>${item.name || key}</span> <span style="font-size:0.8em; opacity:0.6">${key}</span>`;
+        el.onclick = () => selectItem(key);
+        list.appendChild(el);
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    selectedKey = null;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    renderList();
+    document.getElementById('editor-content').innerHTML = '<div style="text-align:center; color:#666; margin-top:100px;">Selecciona un elemento.</div>';
+}
+
+function selectItem(key) {
+    selectedKey = key;
+    renderList();
+    renderEditor();
+}
+
+function renderEditor() {
+    if(!selectedKey) return;
+    const data = currentTab === 'towers' ? TOWERS : ENEMIES;
+    const item = data[selectedKey];
+    const container = document.getElementById('editor-content');
+    
+    let fields = '';
+    
+    // Generar campos inputs dinámicos basados en el objeto
+    // Separamos campos comunes para UI bonita
+    
+    const commonFields = currentTab === 'towers' 
+        ? ['name', 'cost', 'dmg', 'range', 'rate', 'color', 'symbol']
+        : ['hp', 'speed', 'money', 'color', 'radius'];
+
+    fields += `<div class="form-group"><div class="form-title">Propiedades Principales</div><div class="field-row">`;
+    
+    commonFields.forEach(k => {
+        let val = item[k] !== undefined ? item[k] : '';
+        let type = 'text';
+        if(k === 'color') type = 'color';
+        if(typeof item[k] === 'number') type = 'number';
+        
+        fields += `
+            <div>
+                <label>${k.toUpperCase()}</label>
+                <input type="${type}" id="field-${k}" value="${val}" onchange="updateField('${k}', this.value, '${type}')">
+            </div>
+        `;
+    });
+    fields += `</div></div>`;
+
+    // Editor JSON para propiedades avanzadas (mejoras, efectos especiales, etc)
+    fields += `
+        <div class="form-group">
+            <div class="form-title">Configuración Avanzada (JSON)</div>
+            <label>Edita aquí propiedades especiales, flags (immune, burn) y mejoras (upgrades).</label>
+            <textarea id="json-editor" onchange="updateJson()">${JSON.stringify(item, null, 2)}</textarea>
+        </div>
+    `;
+
+    container.innerHTML = `
+        <h2 style="color:var(--accent); margin-top:0">${item.name || selectedKey} <span style="font-size:0.6em; color:#666">(${selectedKey})</span></h2>
+        ${fields}
+    `;
+}
+
+window.updateField = function(key, val, type) {
+    const data = currentTab === 'towers' ? TOWERS : ENEMIES;
+    if(type === 'number') val = parseFloat(val);
+    data[selectedKey][key] = val;
+    // Actualizar el JSON view también
+    const jsonEditor = document.getElementById('json-editor');
+    if(jsonEditor) jsonEditor.value = JSON.stringify(data[selectedKey], null, 2);
+    renderList();
+};
+
+window.updateJson = function() {
+    const data = currentTab === 'towers' ? TOWERS : ENEMIES;
+    const val = document.getElementById('json-editor').value;
+    try {
+        const parsed = JSON.parse(val);
+        data[selectedKey] = parsed;
+        renderList();
+        renderEditor(); // Re-render inputs to match JSON
+    } catch(e) {
+        alert("JSON Inválido: " + e.message);
+    }
+};
+
+window.addNewItem = function() {
+    const id = prompt("ID único para el nuevo elemento (ej: super_tower):");
+    if(!id) return;
+    if(currentTab === 'towers') {
+        if(TOWERS[id]) return alert("Ya existe.");
+        TOWERS[id] = { name: "Nueva Torre", type: "cannon", color: "#ffffff", cost: 100, dmg: 10, range: 100, rate: 60, upgrades: [] };
+    } else {
+        if(ENEMIES[id]) return alert("Ya existe.");
+        ENEMIES[id] = { hp: 100, speed: 1, money: 10, color: "#ff0000", radius: 10, immune: false };
+    }
+    selectItem(id);
+};
+
+window.deleteItem = function() {
+    if(!selectedKey) return;
+    if(!confirm(`¿Borrar ${selectedKey}?`)) return;
+    if(currentTab === 'towers') delete TOWERS[selectedKey];
+    else delete ENEMIES[selectedKey];
+    selectedKey = null;
+    renderList();
+    document.getElementById('editor-content').innerHTML = '';
+};
+
+window.exportAndPlay = function() {
+    const creator = document.getElementById('creator-name').value;
+    const exportData = {
+        towers: TOWERS,
+        enemies: ENEMIES,
+        name: creator
+    };
+    
+    // Compresión simple: Stringify + Base64
+    // Nota: Para grandes datos, URLs pueden ser largas.
+    const jsonStr = JSON.stringify(exportData);
+    const b64 = btoa(unescape(encodeURIComponent(jsonStr))); // UTF-8 safe base64
+    
+    console.log("Tamaño de datos (bytes):", b64.length);
+    
+    if(b64.length > 30000) {
+        alert("¡Cuidado! Has creado demasiados datos. Es posible que algunos navegadores corten la URL.");
+    }
+
+    const url = `custom.html?config=${b64}`;
+    window.open(url, '_blank');
+};
+
+// Start
+renderList();
+
+</script>
+</body>
+</html>
