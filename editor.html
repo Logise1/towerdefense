@@ -10,14 +10,21 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "", authDomain: "", projectId: "", storageBucket: "", messagingSenderId: "", appId: "" };
+        // Configuración estática solicitada
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
+            authDomain: "towerdefense-dfbfb.firebaseapp.com",
+            projectId: "towerdefense-dfbfb",
+            storageBucket: "towerdefense-dfbfb.firebasestorage.app",
+            messagingSenderId: "780250375670",
+            appId: "1:780250375670:web:ccded917e7b2316e5013d7",
+            measurementId: "G-4GW89G9D55"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'towerdefense-public-v1';
+        const appId = 'towerdefense-public-v1';
 
         // --- GLOBAL STATE ---
         window.AppState = {
@@ -102,7 +109,7 @@
                         window.AppState.currentDocId = ref.id;
                     }
                     btn.innerText = "GUARDADO ✔";
-                    setTimeout(() => { btn.innerText = "GUARDAR CAMBIOS"; btn.disabled = false; }, 2000);
+                    setTimeout(() => { btn.innerText = "GUARDAR ARSENAL"; btn.disabled = false; }, 2000);
                 } catch (e) {
                     console.error(e);
                     btn.innerText = "ERROR X";
@@ -175,10 +182,11 @@
         };
 
         const initAuth = async () => {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
+            // Eliminada lógica de entorno para usar siempre la configuración estática
+            try {
                 await signInAnonymously(auth);
+            } catch (e) {
+                console.error("Auth Error:", e);
             }
         };
 
