@@ -7,9 +7,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Configuración estática obligatoria
         const firebaseConfig = {
             apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
             authDomain: "towerdefense-dfbfb.firebaseapp.com",
@@ -25,12 +26,14 @@
         const db = getFirestore(app);
         const appId = 'towerdefense-public-v1';
 
+        // --- GLOBAL STATE ---
         window.AppState = {
             user: null,
             currentDocId: null,
             creations: []
         };
 
+        // --- AUTH MANAGER ---
         window.AuthManager = {
             login: async (emailRaw, password) => {
                 const email = emailRaw.includes('@') ? emailRaw : `${emailRaw}@email.com`;
@@ -39,7 +42,7 @@
                     await signInWithEmailAndPassword(auth, email, password);
                 } catch (error) { 
                     window.UI.setLoading(false);
-                    alert("Error: " + error.message); 
+                    alert("Error de acceso: " + error.message); 
                 }
             },
             register: async (emailRaw, password) => {
@@ -49,7 +52,7 @@
                     await createUserWithEmailAndPassword(auth, email, password);
                 } catch (error) { 
                     window.UI.setLoading(false);
-                    alert("Error: " + error.message); 
+                    alert("Error al registrar: " + error.message); 
                 }
             },
             logout: async () => {
@@ -60,6 +63,7 @@
             }
         };
 
+        // --- CLOUD MANAGER ---
         window.CloudManager = {
             listCreations: async () => {
                 if (!auth.currentUser) return;
@@ -70,6 +74,7 @@
                     const list = [];
                     snapshot.forEach(doc => {
                         const d = doc.data();
+                        // Solo mostramos los mapas creados por este UID
                         if(d.authorUid === auth.currentUser.uid) {
                             list.push({id: doc.id, ...d});
                         }
@@ -91,7 +96,7 @@
 
                 const name = document.getElementById('creation-name-input').value || "Sin Nombre";
                 const userEmail = auth.currentUser.email || "piloto@neon.com";
-                const authorName = userEmail.includes('@') ? userEmail.split('@')[0] : userEmail;
+                const authorName = userEmail.split('@')[0];
 
                 const dataToSave = {
                     name: name,
@@ -111,6 +116,7 @@
                     }
                     btn.innerText = "GUARDADO ✔";
                     setTimeout(() => { btn.innerText = "GUARDAR ARSENAL"; btn.disabled = false; }, 2000);
+                    window.CloudManager.listCreations(); // Refrescar lista
                 } catch (e) {
                     console.error(e);
                     btn.innerText = "ERROR X";
@@ -119,6 +125,7 @@
             }
         };
 
+        // --- UI MANAGER ---
         window.UI = {
             showScreen: (id) => {
                 document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -151,22 +158,20 @@
                             <button class="btn-small btn-play">JUGAR</button>
                         </div>
                     `;
-                    // Listener para Editar
                     card.querySelector('.btn-edit').onclick = (e) => { 
                         e.stopPropagation(); 
                         window.Editor.load(item.id, item.data); 
                     };
-                    // Listener para Jugar (Redirección)
                     card.querySelector('.btn-play').onclick = (e) => { 
                         e.stopPropagation(); 
                         window.open(`custom.html?id=${item.id}`, '_blank');
                     };
-
                     grid.appendChild(card);
                 });
             }
         };
 
+        // --- EDITOR LOGIC ---
         window.Editor = {
             initNew: () => {
                 window.AppState.currentDocId = null;
@@ -194,12 +199,13 @@
             }
         };
 
+        // --- OBSERVAR ESTADO DE AUTH ---
         onAuthStateChanged(auth, (user) => {
             window.AppState.user = user;
             window.UI.setLoading(false);
             if (user) {
                 const userEmail = user.email || "PILOTO@NEON.COM";
-                const displayName = userEmail.includes('@') ? userEmail.split('@')[0] : userEmail;
+                const displayName = userEmail.split('@')[0];
                 document.getElementById('user-display-name').innerText = displayName.toUpperCase();
                 window.UI.showScreen('dashboard-screen');
                 window.CloudManager.listCreations();
@@ -208,13 +214,9 @@
             }
         });
 
-        window.onload = async () => {
+        window.onload = () => {
+            // Ya no iniciamos anónimamente. onAuthStateChanged se encargará de mostrar login.
             window.UI.setLoading(true);
-            try {
-                await signInAnonymously(auth);
-            } catch (e) {
-                window.UI.setLoading(false);
-            }
         };
     </script>
 
@@ -245,7 +247,7 @@
         .login-box { background: var(--panel); padding: 40px; border: 1px solid var(--accent); border-radius: 10px; width: 350px; box-shadow: 0 0 30px rgba(0,255,204,0.1); }
         .login-title { text-align: center; color: var(--accent); font-size: 2rem; margin-bottom: 20px; font-weight: 800; text-shadow: 0 0 10px var(--accent); }
         
-        input, select { width: 100%; padding: 12px; margin-bottom: 10px; background: #000; border: 1px solid #333; color: white; font-family: inherit; border-radius: 4px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; background: #000; border: 1px solid #333; color: white; font-family: inherit; border-radius: 4px; }
         input:focus { border-color: var(--accent); outline: none; }
         
         .btn { width: 100%; padding: 12px; background: var(--accent); color: black; font-weight: bold; border: none; cursor: pointer; transition: 0.2s; font-family: inherit; font-size: 1rem; margin-bottom: 10px; border-radius: 4px; }
@@ -261,7 +263,7 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
         .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; transition: 0.2s; display: flex; flex-direction: column; height: 160px; }
         .card:hover { border-color: var(--accent); transform: translateY(-3px); }
-        
+        .new-card { border-style: dashed; justify-content: center; align-items: center; cursor: pointer; color: #666; }
         .card-title { font-size: 1.2rem; font-weight: bold; color: white; margin-bottom: 5px; }
         .card-meta { font-size: 0.8rem; color: #666; margin-bottom: auto; }
         .card-actions { display: flex; gap: 10px; margin-top: 15px; }
@@ -290,7 +292,7 @@
         .toggle-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .toggle-group input { width: auto; margin: 0; }
 
-        textarea { width: 100%; height: 150px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; padding: 10px; border-radius: 4px; resize: none; }
+        textarea { width: 100%; height: 200px; background: #000; color: #0f0; font-family: monospace; border: 1px solid #444; padding: 10px; border-radius: 4px; resize: none; }
         
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -299,9 +301,11 @@
 <body>
 
 <div id="loading-overlay">
-    <div>CARGANDO NEON STUDIO...</div>
+    <div>NEON STUDIO</div>
+    <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.5;">Cargando archivos de red...</div>
 </div>
 
+<!-- LOGIN SCREEN -->
 <div id="login-screen" class="screen">
     <div class="login-box">
         <div class="login-title">NEON STUDIO</div>
@@ -312,9 +316,10 @@
     </div>
 </div>
 
+<!-- DASHBOARD SCREEN -->
 <div id="dashboard-screen" class="screen">
     <div class="nav-bar">
-        <div class="nav-title">PROYECTOS</div>
+        <div class="nav-title">MIS MAPAS</div>
         <div class="user-info">
             <span id="user-display-name" style="color:white; font-weight:bold">USER</span>
             <button class="btn-small" onclick="window.AuthManager.logout()">SALIR</button>
@@ -325,6 +330,7 @@
     </div>
 </div>
 
+<!-- EDITOR SCREEN -->
 <div id="editor-screen" class="screen">
     <div class="editor-layout">
         <div class="sidebar">
@@ -418,7 +424,6 @@ function renderEditorForm() {
     const item = data[selectedKey];
     const container = document.getElementById('editor-content');
     
-    // Categorizamos los campos para una mejor UI
     const fields = Object.keys(item);
     const colorFields = ['color', 'glow'];
     const boolFields = ['immune', 'ignoreArmor', 'isUlt', 'burn', 'freeze'];
