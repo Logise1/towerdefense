@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tower Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // NOTA: firebaseConfig tomado de index.html
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPCHIEH-oG60kLBnOf98Qwtj56DFLcPaE",
+            authDomain: "towerdefense-dfbfb.firebaseapp.com",
+            projectId: "towerdefense-dfbfb",
+            storageBucket: "towerdefense-dfbfb.firebasestorage.app",
+            messagingSenderId: "780250375670",
+            appId: "1:780250375670:web:ccded917e7b2316e5013d7",
+            measurementId: "G-4GW89G9D55"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        // Fallback or use global var if available, but for editor standalone default is safest or specific one.
+        // index.html uses: typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // We should probably stick to that or 'default-app-id' if running locally without the wrapper.
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            if (user) {
+                document.getElementById('auth-status').innerText = "Logueado como: " + user.email;
+                document.getElementById('login-panel').style.display = 'none';
+                document.getElementById('editor-panel').style.display = 'block';
+            } else {
+                document.getElementById('auth-status').innerText = "No logueado";
+                document.getElementById('login-panel').style.display = 'block';
+                document.getElementById('editor-panel').style.display = 'none';
+            }
+        });
+
+        window.login = async () => {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            try {
+                await signInWithEmailAndPassword(auth, `${u}@email.com`, p);
+            } catch (e) {
+                alert("Error de login: " + e.message);
+            }
+        };
+
+        window.saveAndPlay = async () => {
+            if (!currentUser) return alert("Debes iniciar sesión");
+
+            // 8 digit ID
+            const modId = Math.floor(10000000 + Math.random() * 90000000).toString();
+
+            const towerData = {
+                id: modId,
+                name: document.getElementById('t-name').value,
+                cost: document.getElementById('t-cost').value,
+                dmg: document.getElementById('t-dmg').value,
+                range: document.getElementById('t-range').value,
+                rate: document.getElementById('t-rate').value,
+                color: document.getElementById('t-color').value,
+                author: currentUser.email,
+                timestamp: Date.now()
+            };
+
+            try {
+                // Path: artifacts/{appId}/public/data/mods/{modId}
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'mods', modId), towerData);
+                console.log("Mod saved successfully:", modId);
+                window.location.href = `index.html?custom=${modId}`;
+            } catch (e) {
+                console.error(e);
+                alert("Error guardando mod: " + e.message);
+            }
+        };
+    </script>
+    <style>
+        body {
+            background: #0a0a12;
+            color: #e0e6ed;
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .panel {
+            background: #151520;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #2a2a40;
+            width: 400px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #00ffcc;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            border-bottom: 2px solid #2a2a40;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-top: 0;
+            color: #fff;
+        }
+
+        input {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #0e0e15;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 4px;
+            font-family: 'Rajdhani';
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ffcc;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #00ffcc;
+            color: #000;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            font-family: 'Rajdhani';
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #00ccaa;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #8899ac;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        input[type="color"] {
+            height: 50px;
+            padding: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>TOWER EDITOR</h1>
+    <div id="auth-status" style="margin-bottom: 20px; color: #00ffcc; font-weight: bold;">Cargando...</div>
+
+    <div id="login-panel" class="panel">
+        <h2>ACCESO REQUERIDO</h2>
+        <input type="text" id="username" placeholder="Nombre de usuario">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="window.login()">INICIAR SESIÓN</button>
+    </div>
+
+    <div id="editor-panel" class="panel" style="display:none;">
+        <h2>DISEÑAR TORRE</h2>
+        <label>Nombre de la Torre</label> <input type="text" id="t-name" value="Mi Torre">
+        <label>Costo ($)</label> <input type="number" id="t-cost" value="100">
+        <label>Daño</label> <input type="number" id="t-dmg" value="10">
+        <label>Rango (Tiles)</label> <input type="number" id="t-range" value="4">
+        <label>Cadencia (Frames, menor es más rápido)</label> <input type="number" id="t-rate" value="30">
+        <label>Color</label> <input type="color" id="t-color" value="#00ffcc">
+        <br><br>
+        <button onclick="window.saveAndPlay()">GUARDAR Y JUGAR</button>
+    </div>
+</body>
+
+</html>
